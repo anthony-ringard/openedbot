@@ -301,8 +301,14 @@ export async function updateBotRow(
       notify_on_finish = coalesce(${editor.notifyOnFinish ?? null}, notify_on_finish),
       speech_rate = coalesce(${editor.speechRate ?? null}, speech_rate),
       permission_mode = coalesce(${editor.permissionMode ?? null}, permission_mode),
-      approval_policy_mode = case when ${editor.permissionMode !== undefined} and permission_mode <> ${editor.permissionMode ?? null} then null else approval_policy_mode end,
-      approval_policy_effective_at = case when ${editor.permissionMode !== undefined} and permission_mode <> ${editor.permissionMode ?? null} then null else approval_policy_effective_at end,
+      -- Saisie explicite de permissionMode (même valeur qu'avant comprise) =
+      -- la preuve d'approbation repart à zéro, pour que reconcileHostApprovalPolicies
+      -- revérifie l'état réel côté hôte au prochain passage au lieu de faire
+      -- confiance à un approval_policy_effective_at récent mais obtenu sous
+      -- un ancien protocole de gate (ex. ohb-gate/v1) qu'il ne sait plus lire.
+      -- Un simple resave du même mode ne changeait jamais rien avant ce fix.
+      approval_policy_mode = case when ${editor.permissionMode !== undefined} then null else approval_policy_mode end,
+      approval_policy_effective_at = case when ${editor.permissionMode !== undefined} then null else approval_policy_effective_at end,
       autonomy_enabled = coalesce(${autonomy?.enabled ?? null}, autonomy_enabled),
       autonomy_max_depth = coalesce(${autonomy?.maxDepth ?? null}, autonomy_max_depth),
       autonomy_max_steps = coalesce(${autonomy?.maxSteps ?? null}, autonomy_max_steps),

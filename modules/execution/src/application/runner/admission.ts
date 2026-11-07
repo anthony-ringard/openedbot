@@ -46,7 +46,17 @@ export async function admitClaimedRun(
   }
   if (context.workflowId) {
     await trace.span("preflight.workflow_running", () => db`
-      update workflows workflow set status = 'running', started_at = coalesce(started_at, now()), updated_at = now()
+      update workflows workflow set status = 'running', started_at = coalesce(started_at, now()),
+        -- Premier vrai démarrage (started_at était encore null) : le budget
+        -- d'exécution redémarre à neuf ici, pas depuis la création. Le temps
+        -- passé en file (capacité, runtime) ne doit pas l'avoir déjà mangé —
+        -- WORKFLOW_ADMISSION_GRACE_SECONDS (queue.ts/queue-sweeps.ts) borne
+        -- séparément combien de temps un workflow jamais démarré peut attendre.
+        deadline_at = case when workflow.started_at is null
+          then now() + (workflow.timeout_seconds * interval '1 second')
+          else workflow.deadline_at
+        end,
+        updated_at = now()
        where workflow.organization_id = ${context.organizationId} and workflow.id = ${context.workflowId}
          and workflow.status = 'queued'
          and exists (

@@ -9,6 +9,17 @@ import { NOW, RELEASE_LEASE, sqlExpr, transitionRuns, type TransitionedRun } fro
 /** Plafond de tentatives partagé (reaper de baux + retry Hermes). Au-delà: échec terminal. */
 export const MAX_RUN_ATTEMPTS = 5;
 
+/**
+ * Un workflow jamais démarré (aucun run encore passé par Hermes) ne doit pas
+ * mourir simplement parce que `deadline_at` — fixé à la création, pour borner
+ * le temps d'EXÉCUTION — est dépassé alors qu'il n'a fait qu'attendre une
+ * capacité ou un runtime libre. Cette fenêtre borne l'attente en file à part,
+ * généreuse mais finie : au-delà, le workflow est bien abandonné (pas de
+ * zombie indéfini). Une fois réellement démarré, `deadline_at` est redonné à
+ * neuf dans `admission.ts` et c'est lui seul qui borne l'exécution.
+ */
+export const WORKFLOW_ADMISSION_GRACE_SECONDS = 7200;
+
 type RunRow = { organizationId: string; id: string };
 
 /** Rows grouped by organization, in id order: one transition per organization. */
@@ -198,7 +209,11 @@ async function expireOverdueRunsBeforeStartTx(tx: SQL): Promise<void> {
        where run.status = 'queued' and run.external_state = 'not_started'
          and run.hermes_run_id is null and run.remote_stop_state is null
          and (
-           (workflow.status in ('queued','running','awaiting_approval') and workflow.deadline_at <= now())
+           (
+             workflow.status in ('queued','running','awaiting_approval')
+             and workflow.started_at is null
+             and coalesce(workflow.created_at, run.created_at) <= now() - (${WORKFLOW_ADMISSION_GRACE_SECONDS} * interval '1 second')
+           )
            or (run.workflow_id is null and run.deadline_at <= now())
          )
        order by run.organization_id, run.id
@@ -210,7 +225,8 @@ async function expireOverdueRunsBeforeStartTx(tx: SQL): Promise<void> {
         join overdue_runs run
           on run.organization_id = workflow.organization_id and run.workflow_id = workflow.id
        where workflow.status in ('queued','running','awaiting_approval')
-         and workflow.deadline_at <= now()
+         and workflow.started_at is null
+         and coalesce(workflow.created_at, run.created_at) <= now() - (${WORKFLOW_ADMISSION_GRACE_SECONDS} * interval '1 second')
        order by workflow.organization_id, workflow.id
        for update of workflow
     )

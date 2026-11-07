@@ -2,7 +2,7 @@ import type { SQL } from "bun";
 import { APPROVAL_MAX_ATTEMPTS_CODE } from "@openedbot/contracts-errors";
 import type { WorkerConfig } from "./worker-config";
 import { withRunReceiptJournal } from "./run-receipts";
-import { MAX_RUN_ATTEMPTS, reapExpiredApprovalSends, sweepExpiredRunsTx } from "./queue-sweeps";
+import { MAX_RUN_ATTEMPTS, WORKFLOW_ADMISSION_GRACE_SECONDS, reapExpiredApprovalSends, sweepExpiredRunsTx } from "./queue-sweeps";
 import { ACTIVE_RUN_STATUSES } from "../domain/run-transitions";
 import { NOW, RELEASE_LEASE, sqlExpr, transitionRuns } from "../sql/run-transitions";
 import type { OrganizationEvent } from "@openedbot/contracts-events";
@@ -44,7 +44,7 @@ export async function claimRun(db: SQL, config: WorkerConfig): Promise<ClaimedRu
     await sweepExpiredRunsTx(tx);
     const candidates = await tx<Array<{ id: string; organizationId: string; queuedMs: number }>>`
       with candidate_run as (
-        select r.id, r.organization_id, r.workflow_id, r.remote_stop_state
+        select r.id, r.organization_id, r.workflow_id, r.remote_stop_state, r.created_at
           from runs r
           left join ${subscriptionPort().admission(tx)} s on s.organization_id = r.organization_id
           join runtimes rt on rt.organization_id = r.organization_id and rt.revoked_at is null and rt.is_active
@@ -83,7 +83,13 @@ export async function claimRun(db: SQL, config: WorkerConfig): Promise<ClaimedRu
              or workflow.status = 'reconciling'
              or (
                workflow.status in ('queued','running','awaiting_approval')
-               and workflow.deadline_at > now()
+               and (
+                 workflow.deadline_at > now()
+                 or (
+                   workflow.started_at is null
+                   and coalesce(workflow.created_at, r.created_at) > now() - (${WORKFLOW_ADMISSION_GRACE_SECONDS} * interval '1 second')
+                 )
+               )
              )
            )
            and (
@@ -156,7 +162,13 @@ export async function claimRun(db: SQL, config: WorkerConfig): Promise<ClaimedRu
             or workflow.status = 'reconciling'
             or (
               workflow.status in ('queued','running','awaiting_approval')
-              and workflow.deadline_at > now()
+              and (
+                workflow.deadline_at > now()
+                or (
+                  workflow.started_at is null
+                  and coalesce(workflow.created_at, candidate.created_at) > now() - (${WORKFLOW_ADMISSION_GRACE_SECONDS} * interval '1 second')
+                )
+              )
             )
          for update of workflow
       ), candidate as (
