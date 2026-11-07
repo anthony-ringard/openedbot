@@ -433,6 +433,25 @@ describe("runtime link broker : remplacement et vitalité", () => {
     broker.closeAll();
   });
 
+  test("capabilities replace the operator features and keep the link features of hello", async () => {
+    const log: LivenessLog = [];
+    const broker = new RuntimeLinkBroker({ instanceId: "api-test", liveness: recordingLiveness(log), log: () => {} });
+    const connection = broker.open({ send: () => 1, close() {} });
+    connection.features = ["creation_audit_v2", "provider_management"];
+    broker.bind(connection, identity("rt-link-features"));
+    for (let turn = 0; turn < 5; turn++) await Promise.resolve();
+    connection.handleText({ t: "capabilities", features: ["provider_management", "auto_upgrade"] });
+    for (let turn = 0; turn < 20; turn++) await Promise.resolve();
+    connection.handleText({ t: "capabilities", features: ["provider_management"] });
+    for (let turn = 0; turn < 20; turn++) await Promise.resolve();
+    expect(log.map((entry) => entry.features)).toEqual([
+      ["creation_audit_v2", "provider_management"],
+      ["creation_audit_v2", "provider_management", "auto_upgrade"],
+      ["creation_audit_v2", "provider_management"],
+    ]);
+    broker.closeAll();
+  });
+
   test("a stalled capability write coalesces a flood into the latest inventory", async () => {
     const log: LivenessLog = [];
     const liveness = recordingLiveness(log);
