@@ -202,7 +202,7 @@ const WORKFLOW_DEADLINE_STOP_MESSAGE = "La durée maximale du workflow est attei
 async function expireOverdueRunsBeforeStartTx(tx: SQL): Promise<void> {
   const overdue = await tx<RunRow[]>`
     with overdue_runs as (
-      select run.organization_id, run.id, run.workflow_id
+      select run.organization_id, run.id, run.workflow_id, run.created_at
         from runs run
         left join workflows workflow
           on workflow.organization_id = run.organization_id and workflow.id = run.workflow_id
