@@ -1,0 +1,94 @@
+# The blocking update test of the macOS app
+# (apps/desktop-tauri/scripts/update-canary-mac.ts), on a GitHub macOS runner:
+# the published dmg of the previous release must update itself, through the
+# real feed and the real update key, to the release being published, then
+# refuse a forged update. desktop-release.yml calls it before the GitHub
+# release; the stable manifest is promoted only once that workflow is green.
+#
+# On a pull request that touches the canary, it runs as a harness on the
+# current stable release (--from = --to): nothing newer is installed, the
+# forged update is refused. The real N-1 -> N path only exists at a release.
+# Actions pinned by SHA; Bun pinned by packageManager (package.json).
+name: desktop-update-canary
+
+on:
+  workflow_call:
+    inputs:
+      from:
+        description: Installed release (X.Y.Z), from its published dmg
+        required: true
+        type: string
+      to:
+        description: Release the app must update itself to (X.Y.Z)
+        required: true
+        type: string
+      feed:
+        description: Manifest the app follows (default, the beta one)
+        required: false
+        type: string
+        default: ""
+  pull_request:
+    paths:
+      - .github/workflows/desktop-update-canary.yml
+      - apps/desktop-tauri/scripts/update-canary-mac.ts
+      - apps/desktop-tauri/scripts/minisign.ts
+      - apps/desktop-tauri/scripts/release.ts
+      - apps/desktop-tauri/scripts/update-feed.ts
+      - apps/desktop-tauri/scripts/test-signing.ts
+      - apps/desktop-tauri/scripts/mac-identity.ts
+
+permissions:
+  contents: read
+
+jobs:
+  canary:
+    name: macOS update ${{ inputs.from || 'stable' }} -> ${{ inputs.to || 'stable' }}
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+      - name: Resolve the versions
+        id: v
+        # Inputs go through the environment, never the script body.
+        env:
+          FROM_INPUT: ${{ inputs.from }}
+          TO_INPUT: ${{ inputs.to }}
+        run: |
+          if [ -n "$FROM_INPUT" ] || [ -n "$TO_INPUT" ]; then
+            from="$FROM_INPUT"
+            to="$TO_INPUT"
+          else
+            # Harness: the release the stable channel serves, kept as it is.
+            from="$(curl -fsS --proto '=https' --retry 3 https://releases.openedbot.app/desktop/solo/stable/latest.json | jq -r .version)"
+            to="$from"
+          fi
+          for version in "$from" "$to"; do
+            if ! printf '%s' "$version" | grep -Eq '^[0-9]{1,4}\.[0-9]{1,4}\.[0-9]{1,4}$'; then
+              echo "not a release version: '$version'" >&2
+              exit 2
+            fi
+          done
+          echo "from=$from" >> "$GITHUB_OUTPUT"
+          echo "to=$to" >> "$GITHUB_OUTPUT"
+      - name: Update the installed app, then refuse a forged update
+        env:
+          FROM: ${{ steps.v.outputs.from }}
+          TO: ${{ steps.v.outputs.to }}
+          FEED: ${{ inputs.feed }}
+        run: |
+          set -- --from "$FROM" --to "$TO" --work "$RUNNER_TEMP/update-canary"
+          if [ -n "$FEED" ]; then set -- "$@" --feed "$FEED"; fi
+          bun apps/desktop-tauri/scripts/update-canary-mac.ts "$@"
+      - name: Keep the app's journal
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: update-canary-${{ steps.v.outputs.from }}-${{ steps.v.outputs.to }}
+          path: |
+            ${{ runner.temp }}/update-canary/*.log
+            ${{ runner.temp }}/update-canary/*.out
+          if-no-files-found: warn
+          retention-days: 14

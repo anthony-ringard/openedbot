@@ -20,6 +20,14 @@
 #
 # Nothing on R2 for this version, or one file that does not check: the
 # workflow fails and nothing is published.
+#
+# Blocking update test (desktop-update-canary.yml): before the GitHub release,
+# the published dmg of the release the stable channel serves (N-1) is
+# installed on a macOS runner and must update itself to this version through
+# the beta manifest, then refuse a forged update. So the order is: R2 upload,
+# release.ts verify, beta manifest, tag; the stable manifest is promoted only
+# once this workflow is green. A re-run after that promotion names the release
+# to update from (workflow_dispatch input from_version).
 # Actions pinned by SHA; Bun pinned by packageManager (package.json).
 name: desktop-release
 
@@ -28,6 +36,11 @@ on:
     tags: ["desktop/v*"]
   # A re-run on a tag (a release that failed half-way); a branch is refused.
   workflow_dispatch:
+    inputs:
+      from_version:
+        description: Release to update from (X.Y.Z); empty, the one the stable channel serves
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -105,6 +118,48 @@ jobs:
           path: r2/
           if-no-files-found: error
           retention-days: 7
+
+  canary-from:
+    # The release the update canary installs first: the one the stable channel
+    # serves, which must be older than this one (the beta manifest names this
+    # one, stable is promoted after this workflow).
+    name: Resolve the release to update from
+    needs: version
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      from: ${{ steps.f.outputs.from }}
+    steps:
+      - id: f
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+          FROM_INPUT: ${{ inputs.from_version }}
+        run: |
+          if [ -n "$FROM_INPUT" ]; then
+            from="$FROM_INPUT"
+          else
+            from="$(curl -fsS --proto '=https' --retry 3 https://releases.openedbot.app/desktop/solo/stable/latest.json | jq -r .version)"
+          fi
+          if ! printf '%s' "$from" | grep -Eq '^[0-9]{1,4}\.[0-9]{1,4}\.[0-9]{1,4}$'; then
+            echo "not a release version to update from: '$from'" >&2
+            exit 2
+          fi
+          oldest="$(printf '%s\n%s\n' "$from" "$VERSION" | sort -V | head -n 1)"
+          if [ "$from" = "$VERSION" ] || [ "$oldest" != "$from" ]; then
+            echo "the release to update from ($from) is not older than $VERSION." >&2
+            echo "Promote the stable manifest only after this workflow is green; to re-run it, dispatch it on the tag with from_version." >&2
+            exit 1
+          fi
+          echo "from=$from" >> "$GITHUB_OUTPUT"
+
+  update-canary:
+    # Blocking: no GitHub release unless the previous release updates itself to this one.
+    name: macOS update canary
+    needs: [version, fetch, canary-from]
+    uses: ./.github/workflows/desktop-update-canary.yml
+    with:
+      from: ${{ needs.canary-from.outputs.from }}
+      to: ${{ needs.version.outputs.version }}
 
   mac:
     # The dmg R2 serves, checked as a downloaded copy: Gatekeeper, the stapled
@@ -235,7 +290,7 @@ jobs:
 
   release:
     name: Publish the GitHub release
-    needs: [version, mac, linux]
+    needs: [version, mac, linux, update-canary]
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:

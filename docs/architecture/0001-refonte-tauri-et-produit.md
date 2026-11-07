@@ -1338,11 +1338,22 @@ concorder, ce que vérifient la version du dmg, celle des debs et celle des sign
 4. R2 (jeton Cloudflare à droits R2, jamais en argument) : le contenu de `publish/vX.Y.Z/` sous
    `desktop/vX.Y.Z/`, `SHA256SUMS` en dernier ; relire depuis
    `https://releases.openedbot.app/desktop/vX.Y.Z/` (`release.ts verify --dir` sur une copie).
-5. `publish/solo/beta/latest.json` → `desktop/solo/beta/latest.json`.
-6. Tag `desktop/vX.Y.Z` poussé : `desktop-release.yml` vérifie et publie la release GitHub
-   (`--latest`). Le site sert alors la nouvelle version par `releases/latest/download/…` ; ses
-   liens Windows sont à retirer (dépôt `openedbot-site`), ses liens arm64 Linux à ajouter.
-7. Promotion stable : `publish/solo/stable/latest.json` → `desktop/solo/stable/latest.json`.
+5. `publish/solo/beta/latest.json` → `desktop/solo/beta/latest.json`. Obligatoire avant le tag :
+   le test bloquant suit ce manifeste.
+6. Tag `desktop/vX.Y.Z` poussé : `desktop-release.yml` vérifie les fichiers, puis lance le **test
+   bloquant de mise à jour** (`desktop-update-canary.yml`, `scripts/update-canary-mac.ts`, runner
+   macOS) : le dmg publié de la version que sert le canal stable (N-1) est installé hors
+   `/Applications`, sans quarantaine, démarré déconnecté contre une API morte (aucun run en
+   cours) et au repos après 10 s ; il doit se mettre à jour seul vers X.Y.Z par le manifeste bêta
+   (bundle remplacé, nouveau processus vivant qui répond « up to date », codesign, Gatekeeper,
+   ticket agrafé, équipe QDC76LMF29), puis refuser une mise à jour 9999.0.0 signée par une clé
+   jetable (bundle intact). La release GitHub (`--latest`) n'est publiée que si ce test passe.
+   Le site sert alors la nouvelle version par `releases/latest/download/…` ; ses liens Windows
+   sont à retirer (dépôt `openedbot-site`), ses liens arm64 Linux à ajouter.
+7. Promotion stable, **seulement une fois le workflow vert** :
+   `publish/solo/stable/latest.json` → `desktop/solo/stable/latest.json`. Le test lit N-1 dans ce
+   manifeste : promu trop tôt, il refuse de tourner. Une relance après la promotion passe la
+   version de départ (`workflow_dispatch` sur le tag, `from_version`).
 8. Déploiement de la console web : c'est lui qui fait passer les apps 1.0.x à l'état décrit plus
    haut ; le faire après l'étape 6, pour que le téléchargement existe.
 
