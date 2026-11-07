@@ -193,7 +193,7 @@ async function main(): Promise<void> {
       replayWindowEvents: 2,
     }));
     const internalToken = `integration-${crypto.randomUUID()}`;
-    app.route("/internal/events", internalEventRoutes(apiDb, testInternalSecrets("api", { WORKER_INTERNAL_TOKEN: internalToken }), hub));
+    app.route("/internal/events", internalEventRoutes(apiDb, testInternalSecrets("api", internalToken), hub));
 
     const apiOrigin = "http://fast-path.integration";
     const originalFetch = globalThis.fetch;
@@ -242,7 +242,7 @@ async function main(): Promise<void> {
       const workerConfig = {
         workerId,
         apiInternalUrl: apiOrigin,
-        internalSecrets: testInternalSecrets("worker", { WORKER_INTERNAL_TOKEN: internalToken }),
+        internalSecrets: testInternalSecrets("worker", internalToken),
       } as WorkerConfig;
       const blockedWorkerDb = pauseAfterRunEventInsert(workerDb, reachedInsert, released);
       persistence = persistEvents(blockedWorkerDb, workerConfig, context as never, 2, events as never[]);

@@ -8,8 +8,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
  * Le serveur MCP est unique par runtime (un profil clone la config racine,
  * un serveur par bot fuirait vers les bots créés ensuite) : son jeton prouve
  * le runtime, pas le bot. Le worker signe donc l'id du run qu'il exécute avec
- * le secret des clés de run qu'il partage avec l'API (`RUN_KEY_SECRET`, ou
- * `WORKER_INTERNAL_TOKEN` tant que les secrets internes ne sont pas séparés), le bot
+ * le secret des clés de run qu'il partage avec l'API (`RUN_KEY_SECRET`), le bot
  * la recopie dans ses appels, et l'API retrouve le run, son bot, son statut
  * et son origine (une routine ne crée pas de routine). Aucun aller-retour en
  * base pour la signer : rien de plus sur le chemin critique du run.

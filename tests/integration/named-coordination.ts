@@ -78,7 +78,7 @@ try {
         values (${bot === A ? THREAD : bot === B ? id(21) : id(22)}, ${ORG}, ${bot}, 'DM', ${`openedbot102-${slug}`}, true)`;
     }
     const config: WorkerConfig = {
-      workerId: "openedbot102-worker", apiInternalUrl: "http://127.0.0.1:9", internalSecrets: testInternalSecrets("worker", { WORKER_INTERNAL_TOKEN: "openedbot102" }),
+      workerId: "openedbot102-worker", apiInternalUrl: "http://127.0.0.1:9", internalSecrets: testInternalSecrets("worker", "openedbot102"),
       tokenEncryption: { current: key, previous: [] }, hermesMtls: null,
       hermesEndpointPolicy: { environment: "test", testHttpUrl: endpoint } as WorkerConfig["hermesEndpointPolicy"],
       leaseSeconds: 30, runInactivityMs: 20_000, runTimeoutMs: 30_000, reconciliationTimeoutMs: 10_000,

@@ -64,7 +64,7 @@ describe("enveloppe d'événement : live, rejeu et worker", () => {
 
     // Le commit worker : ce que `returning` rend, puis le hint post-commit.
     rows.push({ ...base, ...identity, cursor: "7", leaseGeneration: "2", occurredAt });
-    const wake = internalEventRoutes(fakeDb(rows), testInternalSecrets("api", { WORKER_INTERNAL_TOKEN: "worker-secret" }), hub);
+    const wake = internalEventRoutes(fakeDb(rows), testInternalSecrets("api", "worker-secret"), hub);
     const workerEnvelope = organizationEventEnvelope({
       ...base, cursor: "7", ...identity, leaseGeneration: "2", occurredAt,
     });

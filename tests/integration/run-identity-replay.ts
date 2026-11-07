@@ -287,7 +287,7 @@ async function main(): Promise<void> {
         workerId: `worker-${crypto.randomUUID()}`,
         apiInternalUrl: relayOrigin,
         runtimeLinkInternalUrl: relayOrigin,
-        internalSecrets: testInternalSecrets("worker", { WORKER_INTERNAL_TOKEN: INTERNAL_TOKEN }),
+        internalSecrets: testInternalSecrets("worker", INTERNAL_TOKEN),
         tokenEncryption: {} as WorkerConfig["tokenEncryption"],
         hermesMtls: null,
         hermesEndpointPolicy: {

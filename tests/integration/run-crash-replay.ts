@@ -222,7 +222,7 @@ async function runChild(_mode: ChildMode): Promise<void> {
       workerId,
       apiInternalUrl,
       runtimeLinkInternalUrl: runtimeLinkUrl,
-      internalSecrets: testInternalSecrets("worker", { WORKER_INTERNAL_TOKEN: internalToken }),
+      internalSecrets: testInternalSecrets("worker", internalToken),
       tokenEncryption: {} as WorkerConfig["tokenEncryption"],
       hermesMtls: null,
       hermesEndpointPolicy: {
@@ -384,7 +384,7 @@ async function parentMain(): Promise<void> {
         });
         apiApp.route("/internal/events", internalEventRoutes(
           apiDb as unknown as Db,
-          testInternalSecrets("api", { WORKER_INTERNAL_TOKEN: INTERNAL_WORKER_TOKEN }),
+          testInternalSecrets("api", INTERNAL_WORKER_TOKEN),
           hub,
         ) as unknown as HonoLikeApp);
         apiApp.route("/", eventRoutes(apiDb as unknown as Db, hub, {

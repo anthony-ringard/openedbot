@@ -67,7 +67,7 @@ try {
     const workerConfig: WorkerConfig = {
       workerId: "perm2-preflight-worker",
       apiInternalUrl: "http://127.0.0.1:9",
-      internalSecrets: testInternalSecrets("worker", { WORKER_INTERNAL_TOKEN: "perm2" }),
+      internalSecrets: testInternalSecrets("worker", "perm2"),
       tokenEncryption: { current: key, previous: [] },
       hermesMtls: null,
       hermesEndpointPolicy: { environment: "test", testHttpUrl: endpoint } as WorkerConfig["hermesEndpointPolicy"],

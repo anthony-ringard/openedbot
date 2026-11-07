@@ -69,9 +69,9 @@ export function runtimeLinkInternalRelay(
   options: { isDraining?: () => boolean } = {},
 ): InternalRelayHandlers {
   const proxy = async (context: InternalRelayContext): Promise<Response> => {
-    const match = matchInternalBearer(internal, "relay", context.req.header("Authorization"));
-    internalAuthMetrics.recordBearer("relay", match.ok ? match.via : "refused", "proxy");
-    if (!match.ok) throw new HttpError(401, "WORKER_AUTH_INVALID", "Authentification worker invalide.");
+    const accepted = matchInternalBearer(internal, "relay", context.req.header("Authorization"));
+    internalAuthMetrics.recordBearer("relay", accepted ? "role" : "refused", "proxy");
+    if (!accepted) throw new HttpError(401, "WORKER_AUTH_INVALID", "Authentification worker invalide.");
     const runtimeId = context.req.param("runtimeId");
     const url = new URL(context.req.url);
     const prefix = `${RUNTIME_LINK_INTERNAL_PREFIX}/${runtimeId}/proxy`;
@@ -135,9 +135,9 @@ export function runtimeLinkInternalRelay(
    * la requête publique est arrivée sur une autre instance que le propriétaire.
    */
   const control = async (context: InternalRelayContext): Promise<Response> => {
-    const match = matchInternalBearer(internal, "relay", context.req.header("Authorization"));
-    internalAuthMetrics.recordBearer("relay", match.ok ? match.via : "refused", "control");
-    if (!match.ok) throw new HttpError(401, "WORKER_AUTH_INVALID", "Authentification worker invalide.");
+    const accepted = matchInternalBearer(internal, "relay", context.req.header("Authorization"));
+    internalAuthMetrics.recordBearer("relay", accepted ? "role" : "refused", "control");
+    if (!accepted) throw new HttpError(401, "WORKER_AUTH_INVALID", "Authentification worker invalide.");
     const runtimeId = context.req.param("runtimeId");
     const hopped = relayHopped((name) => context.req.header(name));
     const body = await jsonBody(context.req.raw);
@@ -186,9 +186,9 @@ export function runtimeLinkInternalRelay(
    * raccrochage 4005, génération changée) ; `forwardProbe` le borne.
    */
   const probe = async (context: InternalRelayContext): Promise<Response> => {
-    const match = matchInternalBearer(internal, "relay", context.req.header("Authorization"));
-    internalAuthMetrics.recordBearer("relay", match.ok ? match.via : "refused", "probe");
-    if (!match.ok) throw new HttpError(401, "WORKER_AUTH_INVALID", "Authentification worker invalide.");
+    const accepted = matchInternalBearer(internal, "relay", context.req.header("Authorization"));
+    internalAuthMetrics.recordBearer("relay", accepted ? "role" : "refused", "probe");
+    if (!accepted) throw new HttpError(401, "WORKER_AUTH_INVALID", "Authentification worker invalide.");
     const runtimeId = context.req.param("runtimeId");
     const hopped = relayHopped((name) => context.req.header(name));
     const body = await jsonBody(context.req.raw);

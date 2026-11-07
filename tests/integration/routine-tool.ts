@@ -56,7 +56,7 @@ await withDisposablePostgres("openedbot209_routine_tool", async ({ owner, connec
   app.onError((error, context) => error instanceof HttpError
     ? context.json({ code: error.code }, error.status as 401)
     : context.json({ code: "INTERNAL" }, 500));
-  app.route("/api/mcp/routines", routineToolMcpRoutes(db, testInternalSecrets("api", { WORKER_INTERNAL_TOKEN: SECRET })));
+  app.route("/api/mcp/routines", routineToolMcpRoutes(db, testInternalSecrets("api", SECRET)));
 
   let rpc = 0;
   const post = (org: string, bearer: string | null, body: unknown) => app.request(`/api/mcp/routines/${org}`, {
@@ -162,9 +162,7 @@ await withDisposablePostgres("openedbot209_routine_tool", async ({ owner, connec
     "a run created at the bound is outside the cohort");
   assert((await listWith({ RUN_KEY_SECRET: NEW_SECRET, RUN_KEY_PREVIOUS_SECRET: SECRET, RUN_KEY_PREVIOUS_CREATED_BEFORE: before }, oldKey)).error,
     "a key forged with the previous secret for a run created after its bound must be refused");
-  assert((await listWith({ RUN_KEY_SECRET: NEW_SECRET }, oldKey)).error, "after P4 the former secret must read no key");
-  assert(!(await listWith({ RUN_KEY_SECRET: NEW_SECRET, WORKER_INTERNAL_TOKEN: SECRET, INTERNAL_TOKENS_EMIT: "split" }, oldKey)).error,
-    "during P2 the former secret still verifies run keys");
+  assert((await listWith({ RUN_KEY_SECRET: NEW_SECRET }, oldKey)).error, "once the previous secret is removed, it must read no key");
 
   await db.close();
   console.log("routine-tool: 1 handshake, 4 modes, routine guard, schedules, tenant isolation and run-key cohort proven");

@@ -132,7 +132,7 @@ test("drain authenticates callers, refuses new writes and admits existing-run re
     dialer: () => async (request: { path: string }) => { forwarded.push(request.path); return Response.json({ ok: true }); },
   } as unknown as RuntimeLinkBroker;
   const app = new Hono();
-  app.route(RUNTIME_LINK_INTERNAL_PREFIX, runtimeLinkInternalRoutes(testInternalSecrets("api", { WORKER_INTERNAL_TOKEN: "test" }), broker, NO_RUNTIME_LINK_LOCATOR, { isDraining: () => true }));
+  app.route(RUNTIME_LINK_INTERNAL_PREFIX, runtimeLinkInternalRoutes(testInternalSecrets("api", "test"), broker, NO_RUNTIME_LINK_LOCATOR, { isDraining: () => true }));
   app.onError((error) => new Response(null, { status: error instanceof HttpError ? error.status : 500 }));
   const origin = `${RUNTIME_LINK_INTERNAL_PREFIX}/rt-1/proxy`;
   expect((await app.request(`${origin}/v1/runs`, { method: "POST" })).status).toBe(401);

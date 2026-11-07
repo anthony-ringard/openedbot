@@ -12,7 +12,7 @@ const runtimeId = "5f0f8a3a-1111-4222-8333-444455556666";
 const db = (async () => [{ instanceId: "gateway-b", internalUrl: "http://gateway-b:8792", instanceLive: true }]) as unknown as Db;
 const request = { method: "POST", path: "/v1/runs", headers: {}, body: null } as const;
 function locator(fetchImpl: typeof fetch) {
-  return createRuntimeLinkLocator(db, { instanceId: "api-a", apiInternalUrl: "http://api-a:8790", relay: testInternalSecrets("api", { WORKER_INTERNAL_TOKEN: "test"  })}, fetchImpl);
+  return createRuntimeLinkLocator(db, { instanceId: "api-a", apiInternalUrl: "http://api-a:8790", relay: testInternalSecrets("api", "test")}, fetchImpl);
 }
 function proxyRequest() {
   return new Request(`http://api-a:8790/internal/runtime-links/${runtimeId}/proxy/v1/runs`, { method: "POST", body: "{}" });

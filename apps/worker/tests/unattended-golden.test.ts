@@ -122,7 +122,7 @@ function fakeTx(state: OrgState, workflow: { neverWait: boolean } | null, writes
   }) as unknown as SQL;
 }
 
-const CONFIG = { workerId: "worker-1", apiInternalUrl: "http://api.test", internalSecrets: testInternalSecrets("worker", { WORKER_INTERNAL_TOKEN: "tok" }), blob: { driver: "file" as const, root: "/nonexistent" } } as WorkerConfig;
+const CONFIG = { workerId: "worker-1", apiInternalUrl: "http://api.test", internalSecrets: testInternalSecrets("worker", "tok"), blob: { driver: "file" as const, root: "/nonexistent" } } as WorkerConfig;
 
 async function runCase(state: OrgState, gate: GateIdentity, command: string | null, mode: string | null, workflow: (typeof WORKFLOWS)[string], choices: string[]): Promise<string[]> {
   const writes: unknown[] = [];

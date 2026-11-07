@@ -13,7 +13,7 @@ import { captureLogEvents } from "@openedbot/platform-observability/log/test-log
 import { parseTraceparent, runTraceContext, runWithTrace } from "@openedbot/platform-observability/trace-context";
 const config: RuntimeClientConfig = {
   apiInternalUrl: "http://127.0.0.1:8790",
-  internalSecrets: testInternalSecrets("worker", { WORKER_INTERNAL_TOKEN: "worker-internal-token" }),
+  internalSecrets: testInternalSecrets("worker", "worker-internal-token"),
 };
 
 function connectorContext(): RuntimeClientContext {

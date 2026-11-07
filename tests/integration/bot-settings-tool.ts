@@ -49,7 +49,7 @@ await withDisposablePostgres("openedbot131_bot_settings", async ({ owner, connec
   app.onError((error, context) => error instanceof HttpError
     ? context.json({ code: error.code }, error.status as 401)
     : context.json({ code: "INTERNAL" }, 500));
-  app.route("/api/mcp/bot-settings", botSettingsToolMcpRoutes(db, testInternalSecrets("api", { WORKER_INTERNAL_TOKEN: WORKER_SECRET })));
+  app.route("/api/mcp/bot-settings", botSettingsToolMcpRoutes(db, testInternalSecrets("api", WORKER_SECRET)));
   let rpcId = 0;
   const post = (organizationId: string, bearer: string | null, body: unknown) => app.request(`/api/mcp/bot-settings/${organizationId}`, {
     method: "POST",

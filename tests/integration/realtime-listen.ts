@@ -135,7 +135,7 @@ async function startInstance(options: {
     // commit (half the window), not at the heartbeat, so A's delivery is visible.
     fallbackPollMs: options.fallbackPollMs, replayWindowMs: 3_600_000, replayWindowEvents: 2,
   }));
-  app.route("/internal/events", internalEventRoutes(options.apiDb, testInternalSecrets("api", { WORKER_INTERNAL_TOKEN: options.internalToken }),
+  app.route("/internal/events", internalEventRoutes(options.apiDb, testInternalSecrets("api", options.internalToken),
     hub, undefined, () => !link.connected()));
   const server = Bun.serve({ port: 0, hostname: "127.0.0.1", idleTimeout: 0, fetch: app.fetch });
   link.start();
@@ -214,7 +214,7 @@ await withDisposablePostgres("openedbot600_realtime", async ({ owner, url, conne
       id: runId, organizationId, threadId, botId, sessionId, leaseGeneration, workflowId: null, workflowRootRunId: null,
       stepKind: "root", groupTurnPosition: null, groupId: null, groupState: null, originRunId: null,
     };
-    const workerConfig = { workerId, apiInternalUrl: a.url, internalSecrets: testInternalSecrets("worker", { WORKER_INTERNAL_TOKEN: internalToken  })} as WorkerConfig;
+    const workerConfig = { workerId, apiInternalUrl: a.url, internalSecrets: testInternalSecrets("worker", internalToken)} as WorkerConfig;
     const deltaStart = performance.now();
     await persistEvents(workerDb, workerConfig, context as never, 1, [
       { sequence: 1, type: "agent.message", payload: { delta: "bonjour" }, occurredAt: new Date() },

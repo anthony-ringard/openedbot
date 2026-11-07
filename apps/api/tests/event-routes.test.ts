@@ -95,7 +95,7 @@ describe("SSE cursor policy", () => {
     const woken: string[] = [];
     const routes = internalEventRoutes(
       {} as Db,
-      testInternalSecrets("api", { WORKER_INTERNAL_TOKEN: "worker-secret" }),
+      testInternalSecrets("api", "worker-secret"),
       new EventHub(),
       (organizationId) => { woken.push(organizationId); },
     );
@@ -117,7 +117,7 @@ describe("SSE cursor policy", () => {
     hub.subscribe("org-1", (entry) => { received.push(entry.sequence); });
     const woken: string[] = [];
     let listening = true;
-    const routes = internalEventRoutes(db, testInternalSecrets("api", { WORKER_INTERNAL_TOKEN: "worker-secret" }), hub,
+    const routes = internalEventRoutes(db, testInternalSecrets("api", "worker-secret"), hub,
       (organizationId) => { woken.push(organizationId); }, () => !listening);
     const live = { organizationId: "org-1", threadId: "thread-1", runId: "run-1", sequence: 8, leaseGeneration: 4,
       type: "agent.message", payload: { delta: "x" }, occurredAt: "2026-10-25T00:00:00.000Z" };
@@ -149,7 +149,7 @@ describe("SSE cursor policy", () => {
     const received: Array<{ sequence: number; cursor?: number | null }> = [];
     hub.subscribe("org-1", (entry) => { received.push(entry); });
     const woken: string[] = [];
-    const routes = internalEventRoutes(db, testInternalSecrets("api", { WORKER_INTERNAL_TOKEN: "worker-secret" }), hub,
+    const routes = internalEventRoutes(db, testInternalSecrets("api", "worker-secret"), hub,
       (organizationId) => { woken.push(organizationId); });
     const live = (sequence: number) => ({
       organizationId: "org-1", threadId: "thread-1", runId: "run-1", sequence, leaseGeneration: 4,
@@ -174,7 +174,7 @@ describe("SSE cursor policy", () => {
     const hub = new EventHub();
     const received: unknown[] = [];
     hub.subscribe("org-1", (entry) => { received.push(entry); });
-    const routes = internalEventRoutes(db, testInternalSecrets("api", { WORKER_INTERNAL_TOKEN: "worker-secret" }), hub, () => {});
+    const routes = internalEventRoutes(db, testInternalSecrets("api", "worker-secret"), hub, () => {});
     const live = (sequence: number) => ({
       organizationId: "org-1", threadId: "thread-1", runId: "run-1", sequence, leaseGeneration: 3,
       type: "agent.message", payload: {}, occurredAt: "2026-10-25T00:00:00.000Z",

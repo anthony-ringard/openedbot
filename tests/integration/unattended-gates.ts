@@ -47,7 +47,7 @@ await withDisposablePostgres("openedbot260_unattended_gates", async ({ owner, co
       values (${bot}, ${org}, ${section}, ${`Scout ${next}`}, ${`scout-${next}`}, ${next}, ${mode})`;
     bots.set(`${org}:${mode}`, bot);
   }
-  const config = { workerId: WORKER, apiInternalUrl: "http://127.0.0.1:9", internalSecrets: testInternalSecrets("worker", { WORKER_INTERNAL_TOKEN: "unused"  })} as WorkerConfig;
+  const config = { workerId: WORKER, apiInternalUrl: "http://127.0.0.1:9", internalSecrets: testInternalSecrets("worker", "unused")} as WorkerConfig;
 
   /** One thread, routine workflow and leased run, then one gate through `persistEvents`. */
   async function gate(org: string, mode: string, neverWait: boolean, gateIdentity: Record<string, unknown>) {

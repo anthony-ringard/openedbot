@@ -114,7 +114,7 @@ await withDisposablePostgres("openedbot4_s2d_transitions", async ({ owner, conne
   const journal = async (name: Name) => (await owner<Array<{ sequence: number; type: string }>>`
     select sequence, type from run_events where run_id = ${R[name]} order by sequence`).map((row) => `${row.sequence}:${row.type}`).join(",");
   const config = (workerId: string) => ({
-    workerId, apiInternalUrl: "http://127.0.0.1:9", internalSecrets: testInternalSecrets("worker", { WORKER_INTERNAL_TOKEN: "s2d" }), hermesMtls: null, leaseSeconds: 30,
+    workerId, apiInternalUrl: "http://127.0.0.1:9", internalSecrets: testInternalSecrets("worker", "s2d"), hermesMtls: null, leaseSeconds: 30,
     runInactivityMs: 20_000, runTimeoutMs: 30_000, reconciliationTimeoutMs: 10_000, billingEnforced: false,
     cachedInputTokenWeight: 0.1, webAppUrl: "http://127.0.0.1:1420",
   }) as unknown as WorkerConfig;

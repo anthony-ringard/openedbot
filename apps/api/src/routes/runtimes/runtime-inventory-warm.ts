@@ -104,9 +104,9 @@ export function createInventoryWarmer(ctx: IntegrationRouteContext): InventoryWa
 export function internalInventoryRoutes(internal: InternalSecretsWith<"inventory">, warmer: InventoryWarmer): Hono {
   const routes = new Hono();
   routes.post("/changed", async (context) => {
-    const match = matchInternalBearer(internal, "inventory", context.req.header("Authorization"));
-    internalAuthMetrics.recordBearer("inventory", match.ok ? match.via : "refused", "/internal/runtime-inventory/changed");
-    if (!match.ok) throw new HttpError(401, "WORKER_AUTH_INVALID", "Authentification interne invalide.");
+    const accepted = matchInternalBearer(internal, "inventory", context.req.header("Authorization"));
+    internalAuthMetrics.recordBearer("inventory", accepted ? "role" : "refused", "/internal/runtime-inventory/changed");
+    if (!accepted) throw new HttpError(401, "WORKER_AUTH_INVALID", "Authentification interne invalide.");
     const body = await jsonBody(context.req.raw) as { organizationId?: unknown; runtimeId?: unknown };
     if (typeof body.organizationId !== "string" || !isUuid(body.organizationId)
       || typeof body.runtimeId !== "string" || !isUuid(body.runtimeId)) {

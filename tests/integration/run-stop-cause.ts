@@ -68,7 +68,7 @@ try {
     const workerConfig: WorkerConfig = {
       workerId: "openedbot147-worker",
       apiInternalUrl: "http://127.0.0.1:9",
-      internalSecrets: testInternalSecrets("worker", { WORKER_INTERNAL_TOKEN: "openedbot147" }),
+      internalSecrets: testInternalSecrets("worker", "openedbot147"),
       tokenEncryption: { current: key, previous: [] },
       hermesMtls: null,
       hermesEndpointPolicy: { environment: "test", testHttpUrl: endpoint } as WorkerConfig["hermesEndpointPolicy"],

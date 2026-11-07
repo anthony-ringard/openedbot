@@ -107,7 +107,7 @@ describe("POST /internal/runtime-inventory/changed", () => {
   const token = "internal-token-0123456789";
   function app() {
     const warmed: string[] = [];
-    const routes = internalInventoryRoutes(testInternalSecrets("api", { WORKER_INTERNAL_TOKEN: token }), {
+    const routes = internalInventoryRoutes(testInternalSecrets("api", token), {
       warm: (organizationId, runtimeId) => warmed.push(`${organizationId}/${runtimeId}`),
       idle: async () => {},
     });

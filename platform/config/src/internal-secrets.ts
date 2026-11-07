@@ -16,14 +16,15 @@ import { createHash, timingSafeEqual } from "node:crypto";
  * its secrets has no field for the others, so the gateway cannot sign a run key
  * nor publish an event.
  *
- * Transition (self-hosting and the production cut-over): a role without its own
- * variable falls back to `WORKER_INTERNAL_TOKEN`, which keeps an unmigrated host
- * starting as before. While `WORKER_INTERNAL_TOKEN` is set every verifier still
- * accepts it, and `INTERNAL_TOKENS_EMIT=legacy` makes every emitter send it, so a
- * rolling update never meets a verifier that refuses what an older container
- * sends. `RUN_KEY_PREVIOUS_SECRET` reads (never signs) the run keys of runs
- * created before `RUN_KEY_PREVIOUS_CREATED_BEFORE`, the runs that were signed
- * with the former secret and may still be alive.
+ * In production every role a process holds has its own variable. The former
+ * single `WORKER_INTERNAL_TOKEN` (and the `INTERNAL_TOKENS_EMIT` of the cut-over)
+ * is no longer read: a process that still finds one refuses to start, so a host
+ * that skipped the migration fails loudly instead of running half-configured
+ * (CHANGELOG: the migration of a self-hosted install).
+ *
+ * Rotating `RUN_KEY_SECRET`: `RUN_KEY_PREVIOUS_SECRET` reads (never signs) the
+ * run keys of runs created before `RUN_KEY_PREVIOUS_CREATED_BEFORE`, the runs
+ * signed with the previous secret that may still be alive (API only).
  */
 
 export const INTERNAL_ROLES = ["events", "relay", "inventory", "runKey"] as const;
@@ -35,8 +36,8 @@ export const INTERNAL_ROLE_VARIABLES: Readonly<Record<InternalRole, string>> = {
   inventory: "INVENTORY_INTERNAL_TOKEN",
   runKey: "RUN_KEY_SECRET",
 };
-export const LEGACY_INTERNAL_VARIABLE = "WORKER_INTERNAL_TOKEN";
-export const INTERNAL_EMIT_VARIABLE = "INTERNAL_TOKENS_EMIT";
+/** Variables of the cut-over, no longer read: their presence stops the process. */
+export const RETIRED_INTERNAL_VARIABLES = ["WORKER_INTERNAL_TOKEN", "INTERNAL_TOKENS_EMIT"] as const;
 export const RUN_KEY_PREVIOUS_SECRET_VARIABLE = "RUN_KEY_PREVIOUS_SECRET";
 export const RUN_KEY_PREVIOUS_CREATED_BEFORE_VARIABLE = "RUN_KEY_PREVIOUS_CREATED_BEFORE";
 
@@ -49,7 +50,6 @@ export type InternalProcess = keyof typeof PROCESS_INTERNAL_ROLES;
 export type RolesOf<P extends InternalProcess> = (typeof PROCESS_INTERNAL_ROLES)[P][number];
 
 /** Non-secret placeholders used outside production; every one is refused in production. */
-export const DEV_LEGACY_INTERNAL_TOKEN = "openedbot-worker-dev-token";
 export const DEV_INTERNAL_SECRETS: Readonly<Record<InternalRole, string>> = {
   events: "openedbot-events-dev-token",
   relay: "openedbot-relay-dev-token",
@@ -57,19 +57,17 @@ export const DEV_INTERNAL_SECRETS: Readonly<Record<InternalRole, string>> = {
   runKey: "openedbot-run-key-dev-secret",
 };
 const DEV_METRICS_INTERNAL_TOKEN = "openedbot-metrics-dev-token";
-const DEV_VALUES = new Set<string>([DEV_LEGACY_INTERNAL_TOKEN, DEV_METRICS_INTERNAL_TOKEN, ...Object.values(DEV_INTERNAL_SECRETS)]);
+/** The former single development secret, published in old configurations: still refused in production. */
+const DEV_FORMER_INTERNAL_TOKEN = "openedbot-worker-dev-token";
+const DEV_VALUES = new Set<string>([DEV_FORMER_INTERNAL_TOKEN, DEV_METRICS_INTERNAL_TOKEN, ...Object.values(DEV_INTERNAL_SECRETS)]);
 
-export type InternalSecretSource = "explicit" | "legacy" | "development";
+export type InternalSecretSource = "explicit" | "development";
 export type InternalSecret = { readonly value: string; readonly source: InternalSecretSource };
-export type InternalEmit = "legacy" | "split";
 export type RunKeyPrevious = { readonly secret: string; readonly createdBefore: Date };
 
 /** The secrets of a process that holds at least the roles `R`. */
 export type InternalSecretsWith<R extends InternalRole> = {
   readonly process: InternalProcess;
-  readonly emit: InternalEmit;
-  /** `WORKER_INTERNAL_TOKEN` while it is set: accepted by every verifier, sent under `emit: "legacy"`. */
-  readonly legacy: string | null;
   readonly roles: { readonly [K in R]: InternalSecret };
   /** API only: the former run-key secret, for the cohort of runs created before the bound. */
   readonly runKeyPrevious: RunKeyPrevious | null;
@@ -94,7 +92,15 @@ export function readInternalSecrets<P extends InternalProcess>(
   env: Env = Bun.env,
 ): InternalSecrets<P> {
   const production = environment === "production";
-  const legacy = read(env, LEGACY_INTERNAL_VARIABLE);
+  const retired = RETIRED_INTERNAL_VARIABLES.filter((name) => read(env, name) !== null);
+  if (retired.length > 0) {
+    throw new Error(
+      `${retired.join(" and ")} ${retired.length > 1 ? "are" : "is"} no longer read: the internal secrets are one per role `
+      + `(${Object.values(INTERNAL_ROLE_VARIABLES).join(", ")}). Give every role its own value, restart the API, the worker `
+      + "and the link gateway together, and keep the runs in progress with RUN_KEY_PREVIOUS_SECRET (the former value) and "
+      + `RUN_KEY_PREVIOUS_CREATED_BEFORE (the restart instant) on the API; then remove ${retired.length > 1 ? "them" : "it"} (CHANGELOG).`,
+    );
+  }
   const roles = {} as Record<InternalRole, InternalSecret>;
   const explicit: Array<[string, string]> = [];
   for (const role of PROCESS_INTERNAL_ROLES[process] as readonly InternalRole[]) {
@@ -103,28 +109,12 @@ export function readInternalSecrets<P extends InternalProcess>(
     if (own) {
       roles[role] = { value: own, source: "explicit" };
       explicit.push([name, own]);
-    } else if (legacy) {
-      roles[role] = { value: legacy, source: "legacy" };
     } else if (production) {
-      throw new Error(`${name} is required in production (or ${LEGACY_INTERNAL_VARIABLE} while the internal secrets are not split).`);
+      throw new Error(`${name} is required in production.`);
     } else {
       roles[role] = { value: DEV_INTERNAL_SECRETS[role], source: "development" };
     }
   }
-
-  const rawEmit = read(env, INTERNAL_EMIT_VARIABLE);
-  if (rawEmit !== null && rawEmit !== "legacy" && rawEmit !== "split") {
-    throw new Error(`${INTERNAL_EMIT_VARIABLE} must be legacy or split.`);
-  }
-  if (rawEmit === "legacy" && !legacy) {
-    throw new Error(`${INTERNAL_EMIT_VARIABLE}=legacy requires ${LEGACY_INTERNAL_VARIABLE}.`);
-  }
-  if (production && rawEmit === null && legacy && explicit.length > 0) {
-    // Both secrets are present: the cut-over is under way and the phase must be chosen,
-    // never inferred, or a rolling update would send new secrets to old verifiers.
-    throw new Error(`${INTERNAL_EMIT_VARIABLE} must be set (legacy or split) while ${LEGACY_INTERNAL_VARIABLE} and a per-role secret are both set.`);
-  }
-  const emit: InternalEmit = rawEmit ?? "split";
 
   let runKeyPrevious: RunKeyPrevious | null = null;
   if (process === "api") {
@@ -147,7 +137,6 @@ export function readInternalSecrets<P extends InternalProcess>(
 
   if (production) {
     const values: Array<[string, string]> = [...explicit];
-    if (legacy) values.push([LEGACY_INTERNAL_VARIABLE, legacy]);
     if (runKeyPrevious) values.push([RUN_KEY_PREVIOUS_SECRET_VARIABLE, runKeyPrevious.secret]);
     for (const [name, value] of values) {
       if (DEV_VALUES.has(value)) throw new Error(`${name} must not be a development default in production.`);
@@ -156,7 +145,9 @@ export function readInternalSecrets<P extends InternalProcess>(
       for (let j = i + 1; j < explicit.length; j += 1) {
         if (explicit[i]![1] === explicit[j]![1]) throw new Error(`${explicit[i]![0]} and ${explicit[j]![0]} must be distinct production secrets.`);
       }
-      if (legacy && explicit[i]![1] === legacy) throw new Error(`${explicit[i]![0]} must differ from ${LEGACY_INTERNAL_VARIABLE}.`);
+      if (runKeyPrevious && explicit[i]![1] === runKeyPrevious.secret) {
+        throw new Error(`${RUN_KEY_PREVIOUS_SECRET_VARIABLE} and ${explicit[i]![0]} must be distinct production secrets.`);
+      }
     }
     const metrics = read(env, "METRICS_INTERNAL_TOKEN");
     if (metrics && values.some(([, value]) => value === metrics)) {
@@ -164,7 +155,7 @@ export function readInternalSecrets<P extends InternalProcess>(
     }
   }
 
-  return { process, emit, legacy, roles: roles as InternalSecrets<P>["roles"], runKeyPrevious } as InternalSecrets<P>;
+  return { process, roles: roles as InternalSecrets<P>["roles"], runKeyPrevious } as InternalSecrets<P>;
 }
 
 /**
@@ -182,10 +173,6 @@ function readUtcInstant(value: string): Date | null {
 
 /** The `Authorization` value an emitter sends for `role`. */
 export function internalBearer<R extends InternalRole>(secrets: InternalSecretsWith<R>, role: R): string {
-  if (secrets.emit === "legacy") {
-    if (!secrets.legacy) throw new Error(`${INTERNAL_EMIT_VARIABLE}=legacy without ${LEGACY_INTERNAL_VARIABLE}.`);
-    return `Bearer ${secrets.legacy}`;
-  }
   return `Bearer ${secrets.roles[role].value}`;
 }
 
@@ -194,34 +181,22 @@ function constantTimeEqual(left: string, right: string): boolean {
   return timingSafeEqual(createHash("sha256").update(left).digest(), createHash("sha256").update(right).digest());
 }
 
-export type InternalBearerMatch = { ok: true; via: "role" | "legacy" } | { ok: false };
-
-/** Whether an `Authorization` header carries the secret of `role` (or, during the transition, the former one). */
+/** Whether an `Authorization` header carries the secret of `role`, and that one only. */
 export function matchInternalBearer<R extends InternalRole>(
   secrets: InternalSecretsWith<R>,
   role: R,
   authorization: string | null | undefined,
-): InternalBearerMatch {
-  const header = authorization ?? "";
-  const own = secrets.roles[role].value;
-  const roleMatch = constantTimeEqual(header, `Bearer ${own}`);
-  const legacyMatch = secrets.legacy !== null && secrets.legacy !== own && constantTimeEqual(header, `Bearer ${secrets.legacy}`);
-  if (roleMatch) return { ok: true, via: "role" };
-  if (legacyMatch) return { ok: true, via: "legacy" };
-  return { ok: false };
+): boolean {
+  return constantTimeEqual(authorization ?? "", `Bearer ${secrets.roles[role].value}`);
 }
 
 /** The secret a run key is signed with now. */
 export function runKeySigningSecret(secrets: InternalSecretsWith<"runKey">): string {
-  if (secrets.emit === "legacy") {
-    if (!secrets.legacy) throw new Error(`${INTERNAL_EMIT_VARIABLE}=legacy without ${LEGACY_INTERNAL_VARIABLE}.`);
-    return secrets.legacy;
-  }
   return secrets.roles.runKey.value;
 }
 
 export type RunKeyVerifier =
-  | { secret: string; via: "role" | "legacy" }
+  | { secret: string; via: "role" }
   | { secret: string; via: "previous"; createdBefore: Date };
 
 /**
@@ -231,9 +206,8 @@ export type RunKeyVerifier =
  */
 export function runKeyVerifiers(secrets: InternalSecretsWith<"runKey">): RunKeyVerifier[] {
   const verifiers: RunKeyVerifier[] = [{ secret: secrets.roles.runKey.value, via: "role" }];
-  if (secrets.legacy && secrets.legacy !== secrets.roles.runKey.value) verifiers.push({ secret: secrets.legacy, via: "legacy" });
   const previous = secrets.runKeyPrevious;
-  if (previous && !verifiers.some((verifier) => verifier.secret === previous.secret)) {
+  if (previous) {
     verifiers.push({ secret: previous.secret, via: "previous", createdBefore: previous.createdBefore });
   }
   return verifiers;
@@ -248,14 +222,19 @@ export function runKeyCohortAllows(verifier: RunKeyVerifier, runCreatedAt: Date)
 export function describeInternalSecrets(secrets: InternalSecretsWith<never>): Record<string, unknown> {
   return {
     process: secrets.process,
-    emit: secrets.emit,
-    legacyAccepted: secrets.legacy !== null,
     roles: Object.fromEntries(Object.entries(secrets.roles as Record<string, InternalSecret>).map(([role, secret]) => [role, secret.source])),
     runKeyPreviousCreatedBefore: secrets.runKeyPrevious?.createdBefore.toISOString() ?? null,
   };
 }
 
-/** Internal secrets for tests: every role of `process` with its development value. */
-export function testInternalSecrets<P extends InternalProcess>(process: P, overrides: Env = {}): InternalSecrets<P> {
-  return readInternalSecrets(process, "test", overrides);
+/**
+ * Internal secrets for tests: every role of `process` with its development value,
+ * or the given variables, or one string for every role (tests that send a bearer
+ * by hand; only production requires distinct values).
+ */
+export function testInternalSecrets<P extends InternalProcess>(process: P, overrides: Env | string = {}): InternalSecrets<P> {
+  const env = typeof overrides === "string"
+    ? Object.fromEntries(Object.values(INTERNAL_ROLE_VARIABLES).map((name) => [name, overrides]))
+    : overrides;
+  return readInternalSecrets(process, "test", env);
 }
