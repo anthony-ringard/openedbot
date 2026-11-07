@@ -394,6 +394,9 @@ async function main(): Promise<number> {
     return 0;
   } catch (error) {
     console.error(`canary FAILED: ${error instanceof Error ? error.message : String(error)}`);
+    // The engine's last decisions say why (e.g. "idle install waits: the console has not reported its runs").
+    const tail = logSince(logStart).trimEnd().split("\n").slice(-25).join("\n");
+    if (tail) console.error(`the app's journal, last lines:\n${tail}`);
     return 1;
   } finally {
     if (installed) await stopApp(installed.executable).catch((error) => console.error(`cleanup: ${error instanceof Error ? error.message : String(error)}`));
