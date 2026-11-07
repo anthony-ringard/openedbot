@@ -176,7 +176,7 @@ edge-setup auto-upgrade status
 
 `upgrade` downloads the new version over HTTPS, verifies the release signature then, **once**, the binary against `SHA256SUMS`, and puts it in place. If Hermes needs to restart, it does so only while your bots are not working, and the previous version comes back if Hermes stops responding afterwards; otherwise the restart stays pending.
 
-`auto-upgrade` (every 6 h) installs only a newer `vX.Y.Z` version, never while your bots are working, then **checks** within 2 min that the machine is still linked. Otherwise the previous version is put back. On by default on Linux since v1.5.2: `up` turns it on, unless `--no-auto-upgrade`. `auto-upgrade disable --yes` turns it off, and later `up` runs leave it off until `auto-upgrade enable --yes`. Next to an available update, the console shows whether the host updates itself.
+`auto-upgrade` (every 6 h) installs only a newer `vX.Y.Z` version, never while your bots are working, then **checks** within 2 min that the machine is still linked. Otherwise the previous version is put back. On by default on Linux since v1.5.3: `up` turns it on, unless `--no-auto-upgrade`. `auto-upgrade disable --yes` turns it off, and later `up` runs leave it off until `auto-upgrade enable --yes`. Next to an available update, the console shows whether the host updates itself.
 
 openedbot never updates your machine for you. A version that is too old is flagged in the console; you decide whether to update.
 

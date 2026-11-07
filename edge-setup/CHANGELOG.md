@@ -14,7 +14,9 @@ deux releases différentes.
 
 ## Non publié
 
-## v1.5.2 - 2026-11-07
+## v1.5.3 - 2026-11-07
+
+Le numéro v1.5.2 n'a jamais été publié : sa signature n'a pas pu être faite le jour de sa sortie. v1.5.3 apporte ce qu'il devait contenir.
 
 ### Changé
 

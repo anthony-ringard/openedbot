@@ -270,12 +270,12 @@ differs from the one the binary renders, with the remedy
 
 ### Automatic update
 
-On by default on Linux since v1.5.2: `up` installs it, unless
+On by default on Linux since v1.5.3: `up` installs it, unless
 `--no-auto-upgrade`, and a refusal (`--no-auto-upgrade` or
 `auto-upgrade disable --yes`) is kept in
 `/var/lib/hermes-setup/auto-upgrade.declined` for later `up` runs.
 `auto-upgrade enable --yes` (or `up --auto-upgrade`) clears it. A host that
-disabled it before v1.5.2 (runs recorded, timer gone) counts as a refusal.
+disabled it before v1.5.3 (runs recorded, timer gone) counts as a refusal.
 `auto-upgrade enable --yes` installs
 `hermes-setup-upgrade.timer`: every 6 h (random delay of up to 1 h,
 caught up at boot if the host was off), it runs `upgrade --auto --yes`.
