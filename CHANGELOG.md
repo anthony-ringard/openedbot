@@ -10,6 +10,14 @@ connecteur hôte et le protocole tiennent le leur :
 
 ### Ajouté
 
+- **La carte « Mise à jour du connecteur » dit si l'hôte se met à jour seul.**
+  Quand l'hôte annonce `auto_upgrade` (edge-setup v1.5.2 et suivantes), la
+  carte de Réglages › Runtime indique qu'il installera la version dans les 6 h ;
+  sinon elle propose, à côté de `upgrade`, la commande
+  `sudo edge-setup auto-upgrade enable --yes` à copier. La fenêtre d'annonce ne
+  propose plus d'activer une mise à jour automatique déjà active. Le lien
+  conserve désormais `creation_audit_v2` quand l'hôte renvoie ses capacités en
+  cours de session.
 - **Test bloquant de mise à jour de l'app de bureau macOS.** Une release de
   bureau n'est plus publiée sur GitHub (« Latest ») sans qu'une app installée
   depuis le dmg de la version précédente se soit mise à jour seule vers elle,

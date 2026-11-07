@@ -8,6 +8,7 @@ import { api, queryKeys, runtimeQueryOptions } from "../lib/api";
 import { connectorUpgradeLevel, type ConnectorUpgradeLevel } from "../lib/runtime/connector-upgrade";
 import { useT } from "../lib/i18n";
 import { BUTTON, CopyButton } from "./settings/primitives";
+import { hasAutoUpgrade } from "../lib/runtime/auto-upgrade";
 
 /** Une release ne bouge pas d'heure en heure : l'API la relit déjà toutes les heures. */
 const RELEASE_STALE_MS = 30 * 60_000;
@@ -115,7 +116,7 @@ export function ConnectorUpdateAnnouncement() {
           target={target!}
           release={latest?.version === target ? latest : null}
           upgradeCommand={release.data.upgradeCommand}
-          autoUpgradeCommand={release.data.autoUpgradeCommand}
+          autoUpgradeCommand={hasAutoUpgrade(runtime.data.linkFeatures) ? null : release.data.autoUpgradeCommand}
           upgradeHelp={runtime.data.link?.originRetired
             ? t("connectorUpgrade.dialogUpgradeHelpRetired")
             : runtime.data.link?.connected
@@ -176,7 +177,8 @@ function ConnectorUpdateDialog({
   target: string;
   release: ConnectorReleaseDto | null;
   upgradeCommand: string;
-  autoUpgradeCommand: string;
+  /** null quand l'hôte se met déjà à jour seul (`auto_upgrade`). */
+  autoUpgradeCommand: string | null;
   upgradeHelp: string;
   onClose: () => void;
 }) {
@@ -212,7 +214,11 @@ function ConnectorUpdateDialog({
           </section>
         ) : null}
         <CommandRow title={t("connectorUpgrade.dialogUpgrade")} help={upgradeHelp} command={upgradeCommand} />
-        <CommandRow title={t("connectorUpgrade.dialogAuto")} help={t("connectorUpgrade.dialogAutoHelp")} command={autoUpgradeCommand} />
+        {autoUpgradeCommand ? (
+          <CommandRow title={t("connectorUpgrade.dialogAuto")} help={t("connectorUpgrade.dialogAutoHelp")} command={autoUpgradeCommand} />
+        ) : (
+          <p data-auto-upgrade="on" className="text-muted-foreground">{t("connectorUpgrade.dialogAutoActive")}</p>
+        )}
       </div>
     </Dialog>
   );

@@ -38,7 +38,7 @@ func validateMacUpOptions(o *upOptions) error {
 	if o.sandbox || o.persistentJournal || o.requestedFeatures().HostPolicyEnabled() || o.adminKeyFile != "" || o.console || o.detach || len(o.allowedInbound) > 0 {
 		return errors.New("the Linux host-policy and rootless-Docker provisioning flags are unavailable on macOS; no policy was applied")
 	}
-	if o.autoUpgrade {
+	if o.autoUpgrade == autoUpgradeOn {
 		return errors.New("--auto-upgrade: auto-upgrade is unavailable on macOS; nothing was applied")
 	}
 	return nil

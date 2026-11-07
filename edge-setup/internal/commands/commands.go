@@ -228,6 +228,7 @@ func printPlan(env cli.Env, o *upOptions) int {
 	for _, line := range planLines(features, facts) {
 		printf(env.Stdout, "%s", colorizePhaseLine(env.Color, line))
 	}
+	printf(env.Stdout, "%s", autoUpgradePlanLine(o.autoUpgrade))
 	return cli.ExitOK
 }
 
