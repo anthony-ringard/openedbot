@@ -50,8 +50,9 @@ sign() {
 
 # Default path: one call per file, no fallback.
 sign || { cat "$tmp/out"; echo "sign-fallback test: default signing failed" >&2; exit 1; }
-[[ "$(wc -l < "$tmp/log")" -eq 3 ]] && ! grep -q -- --signing-config "$tmp/log" \
-  || { cat "$tmp/log"; echo "sign-fallback test: the default path used the fallback" >&2; exit 1; }
+if [[ "$(wc -l < "$tmp/log")" -ne 3 ]] || grep -q -- --signing-config "$tmp/log"; then
+  cat "$tmp/log"; echo "sign-fallback test: the default path used the fallback" >&2; exit 1
+fi
 
 # Default refused: each file is signed again through the Rekor v2 config,
 # and the partial bundle of the failed attempt is not what is left.
