@@ -4,6 +4,7 @@ import { IconRefresh } from "@tabler/icons-react";
 import { cn, toast } from "@openedbot/browser-ui-kit";
 import { api, errorMessage, queryKeys } from "../../../../lib/api";
 import { connectorUpgradeLevel, hermesUpdate } from "../../../../lib/runtime/connector-upgrade";
+import { AUTO_UPGRADE_COMMAND } from "../../../../lib/runtime/auto-upgrade";
 import { useT } from "../../../../lib/i18n";
 import type { RuntimeEnrollmentTicketDto, RuntimeLinkVerifyDto, RuntimeConnectorDto, RuntimeLinkDto, RuntimePublicDto } from "@openedbot/contracts-api";
 import { ACTIONS, BUTTON, CopyButton, Note } from "../../../../components/settings/primitives";
@@ -190,7 +191,12 @@ export function RuntimeLinkCheck({ runtime, retiredOrigin = null }: { runtime: R
  * the card hands the owner the one command to run on the host. Below the
  * minimum is a warning, a newer release alone is information.
  */
-export function ConnectorUpgradeNotice({ connector, connected }: { connector: RuntimeConnectorDto | null | undefined; connected: boolean }) {
+export function ConnectorUpgradeNotice({ connector, connected, autoUpgrade }: {
+  connector: RuntimeConnectorDto | null | undefined;
+  connected: boolean;
+  /** L'hôte annonce `auto_upgrade` : il installera cette version seul. */
+  autoUpgrade: boolean;
+}) {
   const { t } = useT();
   const level = connectorUpgradeLevel(connector);
   if (!connector || !level) return null;
@@ -203,19 +209,36 @@ export function ConnectorUpgradeNotice({ connector, connected }: { connector: Ru
       <span className="block">
         {t("connectorUpgrade.versions", { installed: connector.version ?? connector.agent, target })}
       </span>
-      <span className="flex items-center gap-2">
-        <code className="scrollbar-subtle block min-w-0 flex-1 overflow-x-auto whitespace-nowrap rounded-lg bg-surface-sunken px-3 py-2 font-mono text-xs leading-5 text-foreground">
-          {connector.upgradeCommand}
-        </code>
-        <CopyButton
-          value={connector.upgradeCommand}
-          copyLabel={t("connectorUpgrade.copy")}
-          copiedLabel={t("connectorUpgrade.copied")}
-          className={cn(BUTTON.small, "shrink-0")}
-        />
-      </span>
+      {autoUpgrade ? (
+        <span data-auto-upgrade="on" className="block">{t("connectorUpgrade.autoActive")}</span>
+      ) : null}
+      <NoticeCommand command={connector.upgradeCommand} />
       <span className="block">{t(connected ? "connectorUpgrade.selfServe" : "connectorUpgrade.selfServeClosed")}</span>
+      {autoUpgrade ? null : (
+        <span data-auto-upgrade="off" className="block space-y-2 border-t border-current/15 pt-2">
+          <span className="block font-medium">{t("connectorUpgrade.autoOffTitle")}</span>
+          <span className="block">{t("connectorUpgrade.autoOffHelp")}</span>
+          <NoticeCommand command={AUTO_UPGRADE_COMMAND} />
+        </span>
+      )}
     </Note>
+  );
+}
+
+function NoticeCommand({ command }: { command: string }) {
+  const { t } = useT();
+  return (
+    <span className="flex items-center gap-2">
+      <code className="scrollbar-subtle block min-w-0 flex-1 overflow-x-auto whitespace-nowrap rounded-lg bg-surface-sunken px-3 py-2 font-mono text-xs leading-5 text-foreground">
+        {command}
+      </code>
+      <CopyButton
+        value={command}
+        copyLabel={t("connectorUpgrade.copy")}
+        copiedLabel={t("connectorUpgrade.copied")}
+        className={cn(BUTTON.small, "shrink-0")}
+      />
+    </span>
   );
 }
 

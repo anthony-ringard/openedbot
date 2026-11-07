@@ -15,7 +15,7 @@ Réservez à `edge-setup` une machine qui n’héberge pas d’autres services. 
 </Aside>
 
 <Aside type="caution" title="up seul ne durcit rien">
-`sudo edge-setup up --yes` installe Hermes et prépare la machine à être reliée, sans rien publier sur Internet. Il ne configure ni SSH, ni UFW, ni fail2ban, ni PAM, ni journald, ni les mises à jour automatiques. Une machine sur Internet qui s’arrête là n’a **pas** reçu de durcissement.
+`sudo edge-setup up --yes` installe Hermes et prépare la machine à être reliée, sans rien publier sur Internet. Il ne configure ni SSH, ni UFW, ni fail2ban, ni PAM, ni journald. Sous Linux, il active la mise à jour automatique d’edge-setup (voir plus bas), sauf `--no-auto-upgrade`. Une machine sur Internet qui s’arrête là n’a **pas** reçu de durcissement.
 </Aside>
 
 ## Ce que l’outil fait
@@ -116,7 +116,8 @@ Les protections déjà posées restent actives lors d’un `up` ultérieur : ome
 | `--fail2ban` | Jail SSH. |
 | `--ssh-hardening` | Crée un compte d’administration dédié, seul autorisé en SSH, avec votre clé ; sshd durci (`PermitRootLogin no`). Exige `--admin-key`. |
 | `--quarantine-cloud-user` | Quarantaine du compte cloud-init `debian`. Exige le durcissement SSH. |
-| `--auto-upgrade` | Après un `up` réussi, active la mise à jour automatique (toutes les 6 h). Équivalent à `auto-upgrade enable --yes`. |
+| `--auto-upgrade` | Active la mise à jour automatique même si cette machine l’avait refusée. Sous Linux, `up` l’active déjà par défaut. |
+| `--no-auto-upgrade` | Laisse la mise à jour automatique éteinte, et s’en souvient pour les `up` suivants. |
 | `--detach` | Rend la main après l’armement du retour en arrière au lieu d’attendre `verify-access`. |
 
 Une option qui ferme l’accès arme un retour en arrière de 600 s. Depuis **une autre** session SSH, avec le compte d’administration :
@@ -175,7 +176,7 @@ edge-setup auto-upgrade status
 
 `upgrade` télécharge la nouvelle version en HTTPS, vérifie la signature de la release puis, **une fois**, le binaire contre `SHA256SUMS`, et la met en place. Si Hermes doit redémarrer, il ne le fait que lorsque vos bots ne travaillent pas, et l’ancienne version revient s’il ne répond plus ensuite ; sinon le redémarrage reste en attente.
 
-`auto-upgrade` (toutes les 6 h) n’installe qu’une version `vX.Y.Z` plus récente, jamais pendant que vos bots travaillent, puis **vérifie** en moins de 2 min que la machine est toujours reliée. Sinon l’ancienne version est remise. Désactivé par défaut : rien ne l’allume sans `auto-upgrade enable` ou `up --auto-upgrade`.
+`auto-upgrade` (toutes les 6 h) n’installe qu’une version `vX.Y.Z` plus récente, jamais pendant que vos bots travaillent, puis **vérifie** en moins de 2 min que la machine est toujours reliée. Sinon l’ancienne version est remise. Actif par défaut sous Linux depuis v1.5.2 : `up` l’allume, sauf `--no-auto-upgrade`. `auto-upgrade disable --yes` l’éteint, et les `up` suivants le laissent éteint jusqu’à `auto-upgrade enable --yes`. La console indique, à côté d’une mise à jour disponible, si l’hôte se met à jour seul.
 
 openedbot ne met jamais votre machine à jour à votre place. Une version trop ancienne est signalée dans la console ; la mise à jour reste votre geste.
 

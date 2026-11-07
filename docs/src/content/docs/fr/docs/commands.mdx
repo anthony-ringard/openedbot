@@ -41,7 +41,7 @@ ne demandent jamais root.
 | `up` | | Installe le runtime minimal sous `hermes`, le gateway loopback et le connector. Les protections globales sont toutes opt-in avec des options positives. Voir [Les options de `up`](#les-options-de-up). |
 | `update` | | Seul : code 69 (non implémenté). `update --self [--yes]` est l'alias de `upgrade` (release uniquement). |
 | `upgrade --yes [--release-url URL]` | | Télécharge la nouvelle release en HTTPS, vérifie la signature Sigstore de son `SHA256SUMS` puis, une fois, son SHA-256 contre ce manifeste (une release non signée est refusée), remplace le binaire installé et redémarre ses unités ; réécrit aussi `hermes-gateway.service` quand elle diffère de celle que le binaire rend, et ne redémarre le gateway que si l'hôte est au repos. `--from FICHIER --tag HEX` (HMAC-SHA256 sous la clé posée par `deploy-key set`) reste une voie interne pour `make deploy` via SSH. |
-| `auto-upgrade enable\|disable --yes`, `auto-upgrade status` | | Pose ou retire le timer de mise à jour automatique (toutes les 6 h) : seule une release `vX.Y.Z` plus récente, signée et conforme à son `SHA256SUMS`, est installée, le lien est prouvé sur le nouveau binaire et l'ancien est remis sinon. Désactivé par défaut. |
+| `auto-upgrade enable\|disable --yes`, `auto-upgrade status` | | Pose ou retire le timer de mise à jour automatique (toutes les 6 h) : seule une release `vX.Y.Z` plus récente, signée et conforme à son `SHA256SUMS`, est installée, le lien est prouvé sur le nouveau binaire et l'ancien est remis sinon. Actif par défaut après `up` sous Linux ; `disable` est retenu. |
 | `verify-access` | | Depuis une **nouvelle** session SSH : prouve le nouvel accès et désarme un rollback SSH/UFW/fail2ban/quarantaine. |
 | `version` | oui | Affiche la version du binaire (`--version` aussi). Pas de root. |
 
@@ -62,7 +62,8 @@ ne demandent jamais root.
 | `--admin-key F` | Fichier portant l'unique clé publique `ssh-ed25519` du compte admin. Exigée par `--ssh-hardening`. |
 | `--console-confirmed` | Confirme qu'une console hors bande existe ; exigée par toute nouvelle option qui touche l'accès. |
 | `--detach` | Rend la main après l'armement du rollback au lieu d'attendre `verify-access`. |
-| `--auto-upgrade` | Active aussi le timer de mise à jour automatique, comme `auto-upgrade enable --yes`. |
+| `--auto-upgrade` | Active le timer de mise à jour automatique même après un refus (Linux l'active déjà par défaut). |
+| `--no-auto-upgrade` | Laisse le timer éteint et retient ce refus pour les `up` suivants. |
 
 Les protections (`--sandbox`, `--persistent-journal`,
 `--unattended-upgrades`, `--sudo-logging`, `--password-policy`,

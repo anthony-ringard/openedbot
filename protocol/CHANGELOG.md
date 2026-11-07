@@ -7,7 +7,17 @@ uses [semantic versioning](https://semver.org/) as described in
 
 ## [Unreleased]
 
+### Added
+- Host feature `auto_upgrade`: a state, not a route. The host's automatic
+  upgrade timer is enabled, so a newer edge-setup release installs itself.
+  The connector reads the operator again every 5 minutes during a session and
+  sends `capabilities` only when the list changed, so the feature appears or
+  vanishes without a reconnection.
+
 ### Changed
+- `capabilities` replaces the operator features only: the link features
+  announced in `hello` (`creation_audit_v2`) stay for the session. openedbot
+  used to drop them from the stored list on the first `capabilities` frame.
 - The reference package is named `@openedbot/protocol-connector` and is the
   source of truth: the monorepo's `@openedbot/contracts-connector` re-exports
   it instead of carrying a copy, and `scripts/sync-from-siblings.sh` no
