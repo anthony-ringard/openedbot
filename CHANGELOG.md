@@ -68,6 +68,11 @@ connecteur hôte et le protocole tiennent le leur :
 
 ### Ajouté
 
+- **Banc d'essai d'interface `/dev/ui`, en développement seulement.** Une
+  page pour déclencher à la main chaque notification (succès, info,
+  avertissement, erreur, promesse, action, rafale, « Runtime à jour ») et
+  basculer clair, sombre ou système sans reproduire la situation qui les
+  montre. La route n'existe pas dans un build.
 - **openedbot 1.1.1 : l'app de bureau devient native, sur Mac et sous
   Linux.** La console est embarquée au lieu d'être téléchargée à chaque
   ouverture, et l'app se met à jour seule (pastille bleue « Mettre à jour »,
@@ -132,6 +137,12 @@ connecteur hôte et le protocole tiennent le leur :
 
 ### Modifié
 
+- **Les notifications ont une seule apparence, en clair comme en sombre.**
+  « Runtime à jour » passait par une bannière vert menthe en haut de l'écran ;
+  elle passe désormais par les notifications de la console, en bas à droite.
+  Celles-ci lisent les couleurs du thème (surface, textes, bordure, couleurs
+  d'état) au lieu de valeurs figées : carte neutre légèrement surélevée,
+  couleur réservée à une pastille d'icône et au fil du minuteur.
 - **L'app de bureau n'affiche plus de contour de focus** sur les boutons,
   champs, onglets et menus, même au clavier ; la navigation au clavier
   fonctionne comme avant. La console dans le navigateur ne change pas.
