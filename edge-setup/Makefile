@@ -101,11 +101,26 @@ publish-check: notes-check ## (interne) refuse de publier depuis un worktree sal
 
 # ─── Signature ───────────────────────────────────────────────────────────────
 
-sign: ## (CI seulement) Signe SHA256SUMS et chaque fichier de dist/ en keyless (cosign, OIDC GitHub)
+# Configuration de signature de secours : le journal Rekor v2 (log2025-1) et
+# l'horodatage TSA de Sigstore, tous deux déjà dans la racine de confiance
+# que les hôtes lisent par TUF. Elle ne sert que si la signature par défaut
+# (Rekor v1, choisi par la configuration publique) échoue, comme pendant la
+# panne Rekor v1 du 2026-11-07. Le vérificateur des hôtes (sigstore-go) et
+# `cosign verify-blob` acceptent les deux : une entrée de journal vérifiée et
+# un horodatage observé, l'identité exacte restant celle du tag.
+SIGN_FALLBACK_CONFIG ?= $(CURDIR)/scripts/sigstore-signing-config-rekor-v2.json
+SIGN_DIR ?= dist
+
+sign: ## (CI seulement) Signe SHA256SUMS et chaque fichier de dist/ en keyless (cosign, OIDC GitHub), Rekor v2 en secours
 	@if [[ ! "$(VERSION)" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$$ ]]; then echo "VERSION=$(VERSION) : vX.Y.Z requis" >&2; exit 2; fi
 	@command -v cosign >/dev/null || { echo "cosign absent" >&2; exit 2; }
-	@cd dist; for f in $(RELEASE_FILES) SHA256SUMS; do \
-	  cosign sign-blob --yes --bundle "$$f.sigstore.json" "$$f" >/dev/null || exit 1; echo "  signé $$f"; \
+	@[[ -f "$(SIGN_FALLBACK_CONFIG)" ]] || { echo "configuration de secours absente : $(SIGN_FALLBACK_CONFIG)" >&2; exit 2; }
+	@cd "$(SIGN_DIR)" && for f in $(RELEASE_FILES) SHA256SUMS; do \
+	  if cosign sign-blob --yes --bundle "$$f.sigstore.json" "$$f" >/dev/null; then echo "  signé $$f"; continue; fi; \
+	  echo "  signature par défaut refusée pour $$f : nouvel essai via Rekor v2 ($(notdir $(SIGN_FALLBACK_CONFIG)))" >&2; \
+	  rm -f "$$f.sigstore.json"; \
+	  cosign sign-blob --yes --signing-config "$(SIGN_FALLBACK_CONFIG)" --bundle "$$f.sigstore.json" "$$f" >/dev/null || exit 1; \
+	  echo "  signé $$f (Rekor v2)"; \
 	done
 
 verify-signatures: ## Vérifie chaque signature de DIR (dist par défaut) pour le tag edge-setup/$(VERSION), puis SHA256SUMS
@@ -234,6 +249,7 @@ test-release: ## Vérifie matrice, alias et checksums, l'ordre et l'immutabilit�
 	bash test/release/publish-r2.sh
 	bash test/release/notes-check.sh
 	bash test/release/install-identity.sh
+	bash test/release/sign-fallback.sh
 
 contract-check: ## Contrat du lien des deux côtés : la cible de la racine du monorepo (OPENEDBOT_MAIN_DIR), sur cet arbre
 	@if [[ ! -f "$(OPENEDBOT_MAIN_DIR)/Makefile" ]]; then printf '$(C_ERR)[make]$(C_RESET) dépôt openedbot introuvable : %s (racine du monorepo OpenedBot/openedbot, ou OPENEDBOT_MAIN_DIR=...)\n' "$(OPENEDBOT_MAIN_DIR)"; exit 2; fi
