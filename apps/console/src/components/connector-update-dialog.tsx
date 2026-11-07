@@ -1,8 +1,7 @@
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { lazyRouteComponent } from "@tanstack/react-router";
-import { CircleCheck } from "lucide-react";
-import { Alert, Dialog, cn } from "@openedbot/browser-ui-kit";
+import { Dialog, cn, toast } from "@openedbot/browser-ui-kit";
 import { canOperateWorkspace, type ConnectorReleaseDto, type RuntimePublicDto } from "@openedbot/contracts-api";
 import { api, queryKeys, runtimeQueryOptions } from "../lib/api";
 import { connectorUpgradeLevel, type ConnectorUpgradeLevel } from "../lib/runtime/connector-upgrade";
@@ -79,7 +78,7 @@ export function ConnectorUpdateAnnouncement() {
   });
   const queryClient = useQueryClient();
   const [closed, setClosed] = useState<string | null>(null);
-  const upToDate = useUpToDate(runtime.data ?? null, level);
+  useUpToDateToast(runtime.data ?? null, level);
 
   const latest = release.data?.release ?? null;
   const target = level === "outdated" ? connector?.minimumVersion ?? null : connector?.latestVersion ?? null;
@@ -124,18 +123,18 @@ export function ConnectorUpdateAnnouncement() {
           onClose={close}
         />
       ) : null}
-      {upToDate ? <ConnectorUpToDateNotice runtimeName={upToDate.runtimeName} version={upToDate.version} /> : null}
     </>
   );
 }
 
 /**
  * The connector was behind, and now announces a version that is not: the
- * owner ran the command (or auto-upgrade did). Said once, then it fades.
+ * owner ran the command (or auto-upgrade did). Said once, through the shared
+ * toaster like every other notification, then it fades.
  */
-function useUpToDate(runtime: RuntimePublicDto | null, level: ConnectorUpgradeLevel | null): { runtimeName: string; version: string } | null {
+export function useUpToDateToast(runtime: RuntimePublicDto | null, level: ConnectorUpgradeLevel | null): void {
+  const { t } = useT();
   const previous = useRef<{ runtimeId: string; version: string | null; level: ConnectorUpgradeLevel | null } | null>(null);
-  const [notice, setNotice] = useState<{ runtimeName: string; version: string } | null>(null);
   const version = runtime?.link?.connector?.version ?? null;
 
   const runtimeId = runtime?.id ?? null;
@@ -145,16 +144,12 @@ function useUpToDate(runtime: RuntimePublicDto | null, level: ConnectorUpgradeLe
     const before = previous.current;
     previous.current = { runtimeId, version, level };
     if (!before || before.runtimeId !== runtimeId || !before.level || level || !version || version === before.version) return;
-    setNotice({ runtimeName: name, version });
-  }, [runtimeId, name, version, level]);
-
-  useEffect(() => {
-    if (!notice) return;
-    const timer = window.setTimeout(() => setNotice(null), UP_TO_DATE_MS);
-    return () => window.clearTimeout(timer);
-  }, [notice]);
-
-  return notice;
+    toast.success(t("connectorUpgrade.upToDateTitle"), {
+      id: `connector-up-to-date:${runtimeId}`,
+      description: t("connectorUpgrade.upToDate", { version, runtime: name }),
+      duration: UP_TO_DATE_MS,
+    });
+  }, [runtimeId, name, version, level, t]);
 }
 
 function ConnectorUpdateDialog({
@@ -236,26 +231,6 @@ function CommandRow({ title, help, command }: { title: string; help: string; com
       </span>
       <p className="text-muted-foreground">{help}</p>
     </section>
-  );
-}
-
-function ConnectorUpToDateNotice({ runtimeName, version }: { runtimeName: string; version: string }) {
-  const { t } = useT();
-  return (
-    <aside
-      data-slot="connector-up-to-date"
-      aria-live="polite"
-      className="pointer-events-none fixed inset-x-0 top-0 z-[120] flex justify-center pt-[max(0.75rem,var(--openedbot-safe-top))] pr-[max(1rem,var(--openedbot-safe-right))] pl-[max(1rem,var(--openedbot-safe-left))]"
-    >
-      <Alert
-        variant="success"
-        icon={CircleCheck}
-        title={t("connectorUpgrade.upToDateTitle")}
-        className="pointer-events-auto w-full max-w-lg shadow-[var(--shadow-elevated)]"
-      >
-        <p>{t("connectorUpgrade.upToDate", { version, runtime: runtimeName })}</p>
-      </Alert>
-    </aside>
   );
 }
 
