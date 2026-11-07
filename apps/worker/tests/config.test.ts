@@ -28,7 +28,9 @@ function productionEnvironment(overrides: Record<string, string> = {}): Record<s
     PUSH_VAPID_PRIVATE_KEY: Buffer.alloc(32, 7).toString("base64url"),
     PUSH_VAPID_SUBJECT: "mailto:ops@example.test",
     TRANSACTIONAL_EMAIL_FROM: "openedbot <ops@openedbot.example>",
-    WORKER_INTERNAL_TOKEN: "worker-secret",
+    EVENTS_INTERNAL_TOKEN: "events-secret",
+    RELAY_INTERNAL_TOKEN: "relay-secret",
+    RUN_KEY_SECRET: "run-key-secret",
     ...overrides,
   });
 }
@@ -94,8 +96,9 @@ describe("transactional email transports", () => {
   });
 
   test("the development internal token is refused in production", () => {
-    expect(() => readWorkerConfig(productionEnvironment({ WORKER_INTERNAL_TOKEN: "openedbot-worker-dev-token", TRANSACTIONAL_EMAIL_RESEND_API_KEY: "re_test-secret" }))).toThrow(/development default/);
-    expect(() => readWorkerConfig(productionEnvironment({ WORKER_INTERNAL_TOKEN: "  openedbot-worker-dev-token  ", TRANSACTIONAL_EMAIL_RESEND_API_KEY: "re_test-secret" }))).toThrow(/development default/);
+    expect(() => readWorkerConfig(productionEnvironment({ EVENTS_INTERNAL_TOKEN: "openedbot-events-dev-token", TRANSACTIONAL_EMAIL_RESEND_API_KEY: "re_test-secret" }))).toThrow(/development default/);
+    expect(() => readWorkerConfig(productionEnvironment({ RUN_KEY_SECRET: "  openedbot-run-key-dev-secret  ", TRANSACTIONAL_EMAIL_RESEND_API_KEY: "re_test-secret" }))).toThrow(/development default/);
+    expect(() => readWorkerConfig(productionEnvironment({ WORKER_INTERNAL_TOKEN: "worker-secret", TRANSACTIONAL_EMAIL_RESEND_API_KEY: "re_test-secret" }))).toThrow(/WORKER_INTERNAL_TOKEN is no longer read/);
     expect(readWorkerConfig(testEnvironment()).internalSecrets.roles.events.value).toBe("openedbot-events-dev-token");
   });
 
@@ -154,7 +157,9 @@ describe("transactional email transports", () => {
           R2_ACCESS_KEY_ID: "key",
           R2_SECRET_ACCESS_KEY: "secret",
           TRANSACTIONAL_EMAIL_FROM: "openedbot <ops@openedbot.example>",
-          WORKER_INTERNAL_TOKEN: "worker-secret",
+          EVENTS_INTERNAL_TOKEN: "events-secret",
+          RELAY_INTERNAL_TOKEN: "relay-secret",
+          RUN_KEY_SECRET: "run-key-secret",
         }));
         return null;
       } catch (error) {
@@ -182,7 +187,9 @@ describe("web push VAPID", () => {
       TRANSACTIONAL_EMAIL_ENDPOINT: "https://mail.openedbot.example/send",
       TRANSACTIONAL_EMAIL_TOKEN: "token",
       TRANSACTIONAL_EMAIL_FROM: "openedbot <ops@openedbot.example>",
-      WORKER_INTERNAL_TOKEN: "worker-secret",
+      EVENTS_INTERNAL_TOKEN: "events-secret",
+      RELAY_INTERNAL_TOKEN: "relay-secret",
+      RUN_KEY_SECRET: "run-key-secret",
     }))).toThrow(/PUSH_VAPID/);
   });
 

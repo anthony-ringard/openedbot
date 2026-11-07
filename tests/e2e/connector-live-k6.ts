@@ -1,6 +1,5 @@
 /** Health-transport E2E on the authenticated active connector; no inference/mutations.
- * Required: E2E_EMAIL, E2E_PASSWORD, RELAY_INTERNAL_TOKEN (or, on an unmigrated host,
- * WORKER_INTERNAL_TOKEN), k6 in PATH or K6_BIN.
+ * Required: E2E_EMAIL, E2E_PASSWORD, RELAY_INTERNAL_TOKEN, k6 in PATH or K6_BIN.
  * Optional: E2E_API_URL, E2E_RUNTIME_ID, E2E_ARTIFACT_DIR.
  */
 import { mkdir, mkdtemp } from "node:fs/promises";
@@ -39,7 +38,7 @@ async function collect(stream: ReadableStream<Uint8Array>): Promise<string> {
 let logout: (() => Promise<void>) | null = null;
 const publicEvents = (events: LinkEvent[]) => events.map(({ id, kind, occurredAt, agent }) => ({ id, kind, occurredAt, agent }));
 try {
-  const email = requireEnv("E2E_EMAIL"), password = requireEnv("E2E_PASSWORD"), token = process.env.RELAY_INTERNAL_TOKEN || requireEnv("WORKER_INTERNAL_TOKEN");
+  const email = requireEnv("E2E_EMAIL"), password = requireEnv("E2E_PASSWORD"), token = requireEnv("RELAY_INTERNAL_TOKEN");
   secrets.push(password, token);
   const k6 = process.env.K6_BIN || Bun.which("k6");
   if (!k6) throw new Error("Install official k6 or set K6_BIN.");

@@ -1928,21 +1928,28 @@ Comportement identique (tests existants, golden inchangé) ; `runner.ts` sort du
   configurations simultanées ; reprise d'un run signé avant la bascule ; clé ancienne forgée pour
   un run créé après la borne refusée ; P4 (secret précédent retiré : clé ancienne refusée) ; retours
   arrière P2 → P1 et P3 → P2 sans refus.
-  **État (S1b, 2026-11-07)** : fait dans le code, production à basculer
-  (`DEPLOY-NOTES.md` du dépôt pro, « Internal secrets »). `platform/config/src/internal-secrets.ts`
+  **État (S1b, 2026-11-07)** : fait. Production basculée de P1 à P4 le 2026-11-07, chaque
+  barrière passée (`DEPLOY-NOTES.md` du dépôt pro, « Internal secrets »). **N+1 fait le même
+  jour, à la demande** : le repli sur `WORKER_INTERNAL_TOKEN`, `INTERNAL_TOKENS_EMIT` et la
+  vérification de l'ancien secret sont supprimés du code. Écart au plan, qui gardait le repli
+  d'auto-hébergement une release annoncée de plus : aucune release publiée n'a porté ce repli
+  (S1b et N+1 sortent ensemble), il n'aurait donc servi à personne. À la place, un processus qui
+  trouve encore `WORKER_INTERNAL_TOKEN` ou `INTERNAL_TOKENS_EMIT` refuse de démarrer avec la marche
+  à suivre, l'outillage local les retire des fichiers d'environnement (`DEPRECATED_ENV_NAMES`), et
+  le CHANGELOG décrit la migration d'un hôte auto-hébergé en un redémarrage, les runs en cours
+  gardés par `RUN_KEY_PREVIOUS_*`. Ce couple reste : c'est la rotation de `RUN_KEY_SECRET`. `platform/config/src/internal-secrets.ts`
   lit les secrets par processus (`readInternalSecrets("api" | "worker" | "link-gateway")`) ; ils
   ne sont plus dans `ApiConfig`. Le type des secrets d'un processus n'a de champ que pour ses
   rôles : la passerelle ne compile aucun usage d'`events` ni de `runKey`. Compteurs :
   `platform/observability/src/internal-auth.ts`, dans `/internal/metrics` de l'API. Preuves :
-  `platform/config/tests/internal-secrets.test.ts` (règles), `apps/api/tests/internal-secrets-routes.test.ts`
-  (chaque route contre chaque secret, par phase), `apps/api/tests/internal-secrets-overlap.test.ts`
-  (paires de phases voisines dans les deux sens, phase sautée refusée, P4 sans preuve refusé),
-  `tests/integration/routine-tool.ts` (cohorte des clés de run sur PostgreSQL réel),
+  `platform/config/tests/internal-secrets.test.ts` (règles, variables retirées refusées),
+  `apps/api/tests/internal-secrets-routes.test.ts` (chaque route contre chaque secret),
+  `apps/api/tests/run-key-rotation.test.ts` (rotation de `RUN_KEY_SECRET` : cohorte, worker
+  encore sur l'ancien secret, secret précédent retiré), `tests/integration/routine-tool.ts` et
+  `bot-settings-tool.ts` (cohorte des clés de run sur PostgreSQL réel),
   `tests/integration/run-trace-correlation.ts` (worker, passerelle et connecteur réels, secrets
-  séparés par processus par défaut, `OPENEDBOT_TRACE_E2E_SECRETS=legacy` pour l'ancien), et la
-  garde de l'entrypoint dans pro. Écart au plan : la publication d'événements et le signal
-  d'inventaire sont prouvés contre les vraies routes en processus (test de recouvrement), pas
-  entre processus séparés ; `run-trace-correlation` prouve le relais entre processus séparés.
+  séparés par processus), et la garde de l'entrypoint dans pro. Les tests de recouvrement des
+  phases P1 à P4 ont été retirés avec N+1 : ces phases n'existent plus dans le code.
 
 - **Contrat du connecteur unique.** `contracts/connector` et `protocol/connector` sont des
   copies ; les noms de fonctionnalités sont une liste en Go et des constantes éparses dans 10
@@ -2054,7 +2061,7 @@ des consommateurs pro. S5 n'est plus une étape : ses règles s'appliquent à ch
 | **D5** Linux | WebKitGTK, deb et AppImage, lancement sous xvfb | Build CI + parcours de test ; perf WebKitGTK mesurée |
 | **D6** Retrait d'Electron | `apps/desktop` et toute trace supprimés ; Linux publié en Tauri ; Windows retiré jusqu'à D4 ; release unique macOS + Linux (section 4.3.6) | Plus aucune mention hors historique ; `release.ts` et `desktop-release.yml` vérifient sommes et signatures. **Fait** (2026-11-06), rien de publié |
 | **S1** Sûreté | Refus du changement de clé implicite (après comptage en prod) ; secrets séparés ; worker aligné sur le refus de la valeur de dev | Tests de la section 5 |
-| **S1b** Secrets internes séparés | Un secret par rôle (section 4.7), repli sur l'ancien pour l'auto-hébergement, bascule par phases d'environnement avec barrières | Tests de la section 4.7 ; production en P4 sans ancien secret ; zéro refus interne aux compteurs pendant les phases |
+| **S1b** Secrets internes séparés | Un secret par rôle (section 4.7), bascule de production par phases d'environnement avec barrières, puis repli sur l'ancien supprimé (N+1) | Tests de la section 4.7 ; production en P4 sans ancien secret ; zéro refus interne aux compteurs pendant les phases |
 | **S2a** Inventaire | Inventaire des invariants des 16 écritures de `runs` ([0002](0002-invariants-des-runs.md)) | Document d'invariants relu |
 | **S2b** Primitives de création | Primitives transactionnelles + commandes explicites ; trigger 0091 conservé | Garde : aucune écriture de `runs`/`workflows` hors des primitives |
 | **S2c** Allocation d'événements | Une seule primitive : verrou du run puis verrou du curseur, puis calcul, dans la transaction qui insère | Garde sur `max(sequence)` hors primitive ; test de producteurs concurrents |

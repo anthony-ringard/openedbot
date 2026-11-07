@@ -14,7 +14,7 @@ function relayWith(seen: RelayRequest[]) {
     connected: () => true,
     dialer: () => async (request: RelayRequest) => { seen.push(request); return Response.json({ ok: true }); },
   } as unknown as RuntimeLinkBroker;
-  return runtimeLinkInternalRelay(testInternalSecrets("api", { WORKER_INTERNAL_TOKEN: "test" }), broker, NO_RUNTIME_LINK_LOCATOR);
+  return runtimeLinkInternalRelay(testInternalSecrets("api", "test"), broker, NO_RUNTIME_LINK_LOCATOR);
 }
 
 function context(path: string, headers: Record<string, string>): InternalRelayContext {

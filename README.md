@@ -144,6 +144,25 @@ The Makefile also includes the checkout's `make/*.mk` fragments when there are a
 
 Environment variables are named `OPENEDBOT_*` and request headers `X-OpenedBot-*`.
 
+## Internal secrets
+
+The API, the worker and the link gateway authenticate their internal calls with one secret per
+role, and each process holds only its own:
+
+| Variable | Used for | Held by |
+|---|---|---|
+| `EVENTS_INTERNAL_TOKEN` | the worker publishing events to the API | API, worker |
+| `RELAY_INTERNAL_TOKEN` | the link relay routes | API, worker, link gateway |
+| `INVENTORY_INTERNAL_TOKEN` | the link gateway's inventory signal to the API | API, link gateway |
+| `RUN_KEY_SECRET` | signing the run keys of the MCP tools, never a bearer | API, worker |
+
+In development each role has its own placeholder value. In production every role a process
+holds must be set, to a distinct value (`openssl rand -hex 32`), or the process refuses to start.
+The former single `WORKER_INTERNAL_TOKEN` is no longer read: a process that still finds it
+refuses to start. The [changelog](CHANGELOG.md) gives the migration of a self-hosted install
+in one restart, and how `RUN_KEY_PREVIOUS_SECRET` keeps the runs in progress, then rotates
+`RUN_KEY_SECRET`.
+
 ## Security
 
 Please report a vulnerability privately through GitHub Security Advisories, never in a public

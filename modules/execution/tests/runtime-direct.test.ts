@@ -13,7 +13,7 @@ const edge = encryptSecret('{"clientId":"edge-id","clientSecret":"edge-secret"}'
 const row: RuntimeClientContext = { runtimeId: "rt-1", reachability: "direct", runtimeEndpoint: "http://127.0.0.1:18642", hermesProfile: "old-profile",
   tokenCiphertext: token.ciphertext, tokenNonce: token.nonce, tokenTag: token.tag, tokenKeyId: previous.id,
   edgeAuthCiphertext: edge.ciphertext, edgeAuthNonce: edge.nonce, edgeAuthTag: edge.tag, edgeAuthKeyId: previous.id };
-const config: RuntimeClientConfig = { apiInternalUrl: "http://127.0.0.1:8790", internalSecrets: testInternalSecrets("worker", { WORKER_INTERNAL_TOKEN: "internal-only" }),
+const config: RuntimeClientConfig = { apiInternalUrl: "http://127.0.0.1:8790", internalSecrets: testInternalSecrets("worker", "internal-only"),
   tokenEncryption: { current: key, previous: [previous] }, hermesEndpointPolicy: { environment: "test", testHttpUrl: row.runtimeEndpoint! }, hermesMtls: null };
 let fetchSpy: ReturnType<typeof spyOn> | undefined;
 afterEach(() => fetchSpy?.mockRestore());

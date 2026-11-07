@@ -22,7 +22,7 @@ const email = need("E2E_EMAIL"), password = need("E2E_PASSWORD"), runtimeId = ne
 const provider = need("E2E_PROVIDER"), model = need("E2E_MODEL"), input = need("E2E_RUN_INPUT");
 const endInput = process.env.E2E_END_RUN_INPUT ?? "Reply with only CONTINUITY_END_OK.";
 // The relay secret (S1b); an unmigrated host still runs on the former single one.
-const internalToken = process.env.RELAY_INTERNAL_TOKEN || need("WORKER_INTERNAL_TOKEN"), metricsToken = need("METRICS_INTERNAL_TOKEN");
+const internalToken = need("RELAY_INTERNAL_TOKEN"), metricsToken = need("METRICS_INTERNAL_TOKEN");
 function origin(value: string) {
   const url = new URL(value);
   if (url.username || url.password || url.pathname !== "/" || url.search || url.hash || (url.protocol !== "https:"

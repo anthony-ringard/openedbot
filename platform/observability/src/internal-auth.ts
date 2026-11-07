@@ -2,21 +2,20 @@ import { logEvent } from "./logger";
 
 /**
  * Counts what the verifiers of the internal routes accept and refuse, per role
- * (ADR 0001, section 4.7, S1b). The cut-over from the single internal secret to
- * one secret per role moves on when these say so: no refusal at any phase, no
- * former bearer accepted from P3 on, no run key read through the previous
- * secret after P4. Never a bearer, a secret or a digest of one: the role, the
- * route and the outcome only.
+ * (ADR 0001, section 4.7, S1b): a refusal shows a process holding the wrong
+ * secret, a run key read through the previous secret shows a rotation still
+ * in use. Never a bearer, a secret or a digest of one: the role, the route and
+ * the outcome only.
  *
  * Each process counts its own: the API reports them in `/api/metrics`, the
  * gateway and the worker in their logs (`internal_auth.refused`, one line per
  * refusal, at most one per route every 10 s with the number suppressed;
- * `internal_auth.legacy_accepted` and `internal_auth.run_key_previous`, at most
- * one per minute and role with the running count).
+ * `internal_auth.run_key_previous`, at most one per minute and label with the
+ * running count).
  */
 
-export type InternalAuthOutcome = "role" | "legacy" | "refused";
-export type RunKeyOutcome = "role" | "legacy" | "previous" | "refused";
+export type InternalAuthOutcome = "role" | "refused";
+export type RunKeyOutcome = "role" | "previous" | "refused";
 
 type Counts = Record<string, number>;
 
@@ -41,9 +40,6 @@ export class InternalAuthMetrics {
     if (outcome === "refused") {
       this.#throttled(`refused:${role}:${route}`, REFUSAL_LOG_INTERVAL_MS, (suppressed) =>
         this.#log("internal_auth.refused", { role, route, suppressed }, "warn"));
-    } else if (outcome === "legacy") {
-      this.#throttled(`legacy:${role}`, ACCEPTANCE_LOG_INTERVAL_MS, () =>
-        this.#log("internal_auth.legacy_accepted", { role, route, total: this.#bearers[key] }, "info"));
     }
   }
 
@@ -53,9 +49,9 @@ export class InternalAuthMetrics {
     if (outcome === "refused") {
       this.#throttled(`run_key_refused:${label}`, REFUSAL_LOG_INTERVAL_MS, (suppressed) =>
         this.#log("internal_auth.run_key_refused", { label, suppressed }, "warn"));
-    } else if (outcome === "legacy" || outcome === "previous") {
-      this.#throttled(`run_key_${outcome}:${label}`, ACCEPTANCE_LOG_INTERVAL_MS, () =>
-        this.#log(`internal_auth.run_key_${outcome}`, { label, total: this.#runKeys[key] }, "info"));
+    } else if (outcome === "previous") {
+      this.#throttled(`run_key_previous:${label}`, ACCEPTANCE_LOG_INTERVAL_MS, () =>
+        this.#log("internal_auth.run_key_previous", { label, total: this.#runKeys[key] }, "info"));
     }
   }
 

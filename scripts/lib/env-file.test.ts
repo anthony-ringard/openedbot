@@ -10,11 +10,13 @@ describe("classifyLocalEnvEntry", () => {
 
   test("removes empty production or default-only variables, preserves non-empty ones", () => {
     expect(classifyLocalEnvEntry({ name: "API_PUBLIC_URL", value: "" }, "external")).toBe("remove");
-    expect(classifyLocalEnvEntry({ name: "WORKER_INTERNAL_TOKEN", value: "x" }, "external")).toBe("preserve");
+    expect(classifyLocalEnvEntry({ name: "RELAY_INTERNAL_TOKEN", value: "x" }, "external")).toBe("preserve");
   });
 
   test("removes deprecated variables, whatever their value", () => {
     expect(classifyLocalEnvEntry({ name: "DEV_BUNDLED_HERMES_TOKEN", value: "x" }, "external")).toBe("remove");
+    // The former single internal secret (S1b): a process that finds it refuses to start.
+    expect(classifyLocalEnvEntry({ name: "WORKER_INTERNAL_TOKEN", value: "x" }, "external")).toBe("remove");
     // The database port now comes from API_DATABASE_URL: the copy is removed.
     expect(classifyLocalEnvEntry({ name: "OPENEDBOT_POSTGRES_PORT", value: "5432" }, "external")).toBe("remove");
   });

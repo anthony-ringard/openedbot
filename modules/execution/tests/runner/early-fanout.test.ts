@@ -12,7 +12,7 @@ const occurredAt = new Date("2026-10-03T12:00:00.000Z");
 const config = {
   workerId: "worker-1",
   apiInternalUrl: "http://api.test",
-  internalSecrets: testInternalSecrets("worker", { WORKER_INTERNAL_TOKEN: "tok" }),
+  internalSecrets: testInternalSecrets("worker", "tok"),
 } as WorkerConfig;
 
 const context = {

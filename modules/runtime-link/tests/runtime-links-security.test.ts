@@ -29,7 +29,7 @@ function fakeDb(captured: Captured[], options: { due?: Array<{ id: string; organ
   }) as unknown as Bun.SQL;
 }
 
-const control = { apiInternalUrl: "http://127.0.0.1:8790", internalSecrets: testInternalSecrets("worker", { WORKER_INTERNAL_TOKEN: "worker-token"  })};
+const control = { apiInternalUrl: "http://127.0.0.1:8790", internalSecrets: testInternalSecrets("worker", "worker-token")};
 const due = [{ id: "8f3b2c1d-1111-4222-8333-444455556666", organizationId: "org-1" }];
 
 /**

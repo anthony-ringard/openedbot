@@ -542,9 +542,9 @@ export function internalEventRoutes(
 ): Hono {
   const routes = new Hono();
   routes.post("/publish", async (context) => {
-    const match = matchInternalBearer(internal, "events", context.req.header("Authorization"));
-    internalAuthMetrics.recordBearer("events", match.ok ? match.via : "refused", "/internal/events/publish");
-    if (!match.ok) throw new HttpError(401, "WORKER_AUTH_INVALID", "Authentification worker invalide.");
+    const accepted = matchInternalBearer(internal, "events", context.req.header("Authorization"));
+    internalAuthMetrics.recordBearer("events", accepted ? "role" : "refused", "/internal/events/publish");
+    if (!accepted) throw new HttpError(401, "WORKER_AUTH_INVALID", "Authentification worker invalide.");
     // Body: one event (original shape) or a batch `{ events: [...] }`. A batch
     // is validated whole before any fan-out, then delivered in array order.
     const body = await jsonBody(context.req.raw);

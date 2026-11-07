@@ -10,9 +10,8 @@ import { runtimeLinkInternalRoutes } from "../src/routes/runtimes/runtime-link-r
 
 /**
  * S1b (ADR 0001, 4.7): every internal route accepts the secret of its role and
- * refuses the others; the former single secret is accepted while it is set
- * (phases P1 and P2) and refused once it is removed (P3). Authentication runs
- * before anything else, so any status but 401 means the bearer was accepted.
+ * refuses the others, the run-key secret included. Authentication runs before
+ * anything else, so any status but 401 means the bearer was accepted.
  */
 const split = {
   EVENTS_INTERNAL_TOKEN: "e".repeat(64),
@@ -20,7 +19,7 @@ const split = {
   INVENTORY_INTERNAL_TOKEN: "i".repeat(64),
   RUN_KEY_SECRET: "k".repeat(64),
 };
-const LEGACY = "l".repeat(64);
+const OTHER = "x".repeat(64);
 
 function app(secrets: InternalSecrets<"api">): Hono {
   const db = { begin: async () => [] } as unknown as Db;
@@ -61,33 +60,14 @@ async function status(routes: Hono, route: keyof typeof ROUTES, bearer: string):
 }
 
 describe("internal routes, one secret per role (S1b)", () => {
-  test("P3: each route accepts its role's secret only; the run-key secret is never a bearer", async () => {
+  test("each route accepts its role's secret only; the run-key secret is never a bearer", async () => {
     const routes = app(readInternalSecrets("api", "production", split));
     for (const route of Object.keys(ROUTES) as Array<keyof typeof ROUTES>) {
       for (const [name, value] of Object.entries(split)) {
         const accepted = (await status(routes, route, value)) !== 401;
         expect({ route, name, accepted }).toEqual({ route, name, accepted: name === ROLE_OF[route] });
       }
-      expect(await status(routes, route, LEGACY)).toBe(401);
-    }
-  });
-
-  test("P1 and P2: the former secret is still accepted on every route, beside the role's", async () => {
-    for (const emit of ["legacy", "split"]) {
-      const routes = app(readInternalSecrets("api", "production", { ...split, WORKER_INTERNAL_TOKEN: LEGACY, INTERNAL_TOKENS_EMIT: emit }));
-      for (const route of Object.keys(ROUTES) as Array<keyof typeof ROUTES>) {
-        expect(await status(routes, route, LEGACY)).not.toBe(401);
-        expect(await status(routes, route, split[ROLE_OF[route]])).not.toBe(401);
-        expect(await status(routes, route, split.RUN_KEY_SECRET)).toBe(401);
-      }
-    }
-  });
-
-  test("an unmigrated host (former secret only) behaves as before", async () => {
-    const routes = app(readInternalSecrets("api", "production", { WORKER_INTERNAL_TOKEN: LEGACY }));
-    for (const route of Object.keys(ROUTES) as Array<keyof typeof ROUTES>) {
-      expect(await status(routes, route, LEGACY)).not.toBe(401);
-      expect(await status(routes, route, "x".repeat(64))).toBe(401);
+      expect(await status(routes, route, OTHER)).toBe(401);
     }
   });
 });

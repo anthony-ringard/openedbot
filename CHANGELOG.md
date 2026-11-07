@@ -20,22 +20,29 @@ connecteur hôte et le protocole tiennent le leur :
   (signal d'inventaire, API et passerelle) et `RUN_KEY_SECRET` (clés de run,
   API et worker, jamais un bearer). La passerelle, seul processus exposé aux
   hôtes, ne peut plus ni publier d'événements ni signer de clé de run. Chaque
-  route interne refuse le secret des autres rôles ; les refus et les
-  acceptations transitoires se comptent par rôle (journal `internal_auth.*`,
-  `/internal/metrics` de l'API), sans jamais journaliser de secret.
-  **Auto-hébergement : rien à faire pour continuer.** Un usage sans sa
-  variable retombe sur `WORKER_INTERNAL_TOKEN`, et l'hôte démarre comme
-  avant (le démarrage dit quels rôles sont encore sur ce repli). Pour séparer,
-  sans coupure : poser les quatre secrets avec `INTERNAL_TOKENS_EMIT=legacy`
-  en gardant l'ancien, déployer ; passer à `split`, déployer ; retirer
-  `WORKER_INTERNAL_TOKEN` et `INTERNAL_TOKENS_EMIT` en posant
-  `RUN_KEY_PREVIOUS_SECRET` (l'ancienne valeur) et
-  `RUN_KEY_PREVIOUS_CREATED_BEFORE` (la fin de l'étape précédente) sur l'API,
-  déployer ; les retirer quand plus aucun run créé avant cette date n'est en
-  cours. Ne sautez pas d'étape : deux étapes voisines se comprennent, pas
-  deux étapes éloignées. Retour arrière depuis la troisième : remettre
-  l'ancien secret **avec** `INTERNAL_TOKENS_EMIT=split`. Détail :
-  `docs/architecture/0001-refonte-tauri-et-produit.md`, section 4.7.
+  route interne refuse le secret des autres rôles ; les refus se comptent par
+  rôle (journal `internal_auth.*`, `/internal/metrics` de l'API), sans jamais
+  journaliser de secret.
+  **Auto-hébergement : action requise avant de mettre à jour.**
+  `WORKER_INTERNAL_TOKEN` n'est plus lu, et un processus qui le trouve encore
+  refuse de démarrer en disant quoi faire. Pour migrer :
+  1. générer quatre secrets distincts (`openssl rand -hex 32`) et les poser :
+     les quatre sur l'API, `EVENTS_INTERNAL_TOKEN`, `RELAY_INTERNAL_TOKEN` et
+     `RUN_KEY_SECRET` sur le worker, `RELAY_INTERNAL_TOKEN` et
+     `INVENTORY_INTERNAL_TOKEN` sur la passerelle ;
+  2. pour que les runs en cours gardent leurs outils MCP, poser aussi sur
+     l'API `RUN_KEY_PREVIOUS_SECRET` (l'ancienne valeur de
+     `WORKER_INTERNAL_TOKEN`) et `RUN_KEY_PREVIOUS_CREATED_BEFORE` (l'instant
+     de la bascule, en UTC, par exemple `2026-11-07T12:00:00Z`) ;
+  3. retirer `WORKER_INTERNAL_TOKEN`, puis mettre à jour et redémarrer l'API,
+     le worker et la passerelle ensemble ;
+  4. une fois terminés les runs créés avant cette date, retirer les deux
+     variables `RUN_KEY_PREVIOUS_*`.
+  Le même couple sert ensuite à faire tourner `RUN_KEY_SECRET` sans casser
+  les runs déjà en cours (pendant un déploiement progressif, une API pas
+  encore à jour refuse les clés des runs lancés par un worker déjà à jour,
+  le temps qu'elle converge). Détail : `docs/architecture/0001-refonte-tauri-et-produit.md`,
+  section 4.7.
 
 ## 1.1.1 — 2026-11-06
 

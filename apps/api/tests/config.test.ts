@@ -31,7 +31,10 @@ const production = {
   WEB_APP_URL: "https://app.openedbot.example",
   API_DATABASE_URL: "postgres://api:secret@db/openedbot",
   RUNTIME_TOKEN_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString("base64"),
-  WORKER_INTERNAL_TOKEN: "worker-secret",
+  EVENTS_INTERNAL_TOKEN: "events-secret",
+  RELAY_INTERNAL_TOKEN: "relay-secret",
+  INVENTORY_INTERNAL_TOKEN: "inventory-secret",
+  RUN_KEY_SECRET: "run-key-secret",
   METRICS_INTERNAL_TOKEN: "metrics-secret",
   BLOB_DRIVER: "r2",
   R2_BUCKET: "private",
@@ -205,11 +208,11 @@ describe("production configuration", () => {
   });
 
   // The internal secrets are read apart from ApiConfig (S1b, internal-secrets.ts).
-  test("rejects the development worker token in production", () => {
+  test("rejects a development internal secret in production", () => {
     expect(() => readInternalSecrets("api", "production", {
       ...production,
-      WORKER_INTERNAL_TOKEN: "openedbot-worker-dev-token",
-    })).toThrow(/WORKER_INTERNAL_TOKEN must not be a development default/);
+      RELAY_INTERNAL_TOKEN: "openedbot-relay-dev-token",
+    })).toThrow(/RELAY_INTERNAL_TOKEN must not be a development default/);
   });
 
   // Le lien connecteur limite les montées WebSocket par IP cliente ; derrière
@@ -228,7 +231,7 @@ describe("production configuration", () => {
     }))).toThrow(/METRICS_INTERNAL_TOKEN/);
     expect(() => readInternalSecrets("api", "production", {
       ...production,
-      METRICS_INTERNAL_TOKEN: production.WORKER_INTERNAL_TOKEN,
+      METRICS_INTERNAL_TOKEN: production.RUN_KEY_SECRET,
     })).toThrow(/METRICS_INTERNAL_TOKEN/);
   });
 

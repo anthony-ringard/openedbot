@@ -190,6 +190,10 @@ export const DEPRECATED_ENV_PREFIXES: readonly string[] = [];
  *   linked elsewhere. `edge-setup link` has no `--replace` any more and always
  *   replaces the link of the instance it targets (`scripts/lib/link-dev.ts`),
  *   so no source reads it.
+ * - `WORKER_INTERNAL_TOKEN`, `INTERNAL_TOKENS_EMIT` : le secret interne unique
+ *   et le drapeau de sa bascule, remplacés par un secret par rôle (S1b,
+ *   platform/config/src/internal-secrets.ts). Un processus qui les trouve
+ *   encore refuse de démarrer ; l'audit les retire des fichiers locaux.
  */
 export const DEPRECATED_ENV_NAMES: readonly string[] = [
   "BUNDLED_HERMES_URL",
@@ -201,6 +205,7 @@ export const DEPRECATED_ENV_NAMES: readonly string[] = [
   "DEV_HERMES_ADMIN_TOKEN",
   "DEV_HERMES_ADMIN_URL",
   "DEV_HERMES_DASHBOARD_URL",
+  "INTERNAL_TOKENS_EMIT",
   "LEGAL_DOCS_DIR",
   "LEGAL_MENTIONS_PATH",
   "LEGAL_PRIVACY_PATH",
@@ -215,6 +220,7 @@ export const DEPRECATED_ENV_NAMES: readonly string[] = [
   "REPLACE",
   "WEB_ORIGINS",
   "WEB_PUBLIC_URL",
+  "WORKER_INTERNAL_TOKEN",
 ];
 
 export function isDeprecatedEnvName(name: string): boolean {

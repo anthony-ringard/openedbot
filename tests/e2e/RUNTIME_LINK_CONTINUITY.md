@@ -28,7 +28,7 @@ resources. Cleanup stops the Go host and all test listeners/processes.
 ## Opt-in real provider restart acceptance
 
 Provide explicit `E2E_EMAIL`, `E2E_PASSWORD`, `E2E_RUNTIME_ID`, `E2E_PROVIDER`,
-`E2E_MODEL`, `E2E_RUN_INPUT`, `E2E_LINK_GATEWAY_URL`, `RELAY_INTERNAL_TOKEN` (or `WORKER_INTERNAL_TOKEN` on an unmigrated host) and
+`E2E_MODEL`, `E2E_RUN_INPUT`, `E2E_LINK_GATEWAY_URL`, `RELAY_INTERNAL_TOKEN` and
 `METRICS_INTERNAL_TOKEN` through your normal environment mechanism. The account
 must be an owner or admin of the intended runtime. No account, runtime, provider
 or model is guessed. The runtime must already use the separate gateway, and its

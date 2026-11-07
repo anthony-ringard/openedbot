@@ -188,7 +188,7 @@ await withDisposablePostgres("openedbot3_s2c_sequences", async ({ owner, connect
   const config = {
     workerId: "s2c-worker",
     apiInternalUrl: "http://127.0.0.1:9",
-    internalSecrets: testInternalSecrets("worker", { WORKER_INTERNAL_TOKEN: "s2c" }),
+    internalSecrets: testInternalSecrets("worker", "s2c"),
     tokenEncryption: { current: key, previous: [] },
     hermesMtls: null,
     leaseSeconds: 30,

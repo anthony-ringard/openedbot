@@ -27,15 +27,16 @@ describe("InternalAuthMetrics", () => {
     ]);
   });
 
-  test("a former bearer accepted is logged once a minute per role with its running total", () => {
+  test("a run key read through the previous secret is logged once a minute per label with its running total", () => {
     const { metrics, lines, advance } = harness();
-    metrics.recordBearer("events", "legacy", "/internal/events/publish");
-    metrics.recordBearer("events", "legacy", "/internal/events/publish");
+    metrics.recordRunKey("routine", "previous");
+    metrics.recordRunKey("routine", "previous");
     advance(60_000);
-    metrics.recordBearer("events", "legacy", "/internal/events/publish");
+    metrics.recordRunKey("routine", "previous");
+    metrics.recordRunKey("routine", "role");
     expect(lines.map((line) => [line.event, line.fields.total])).toEqual([
-      ["internal_auth.legacy_accepted", 1],
-      ["internal_auth.legacy_accepted", 3],
+      ["internal_auth.run_key_previous", 1],
+      ["internal_auth.run_key_previous", 3],
     ]);
   });
 

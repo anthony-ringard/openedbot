@@ -81,7 +81,6 @@ describe("La configuration n'ouvre aucun canal SSH", () => {
   const base = {
     OPENEDBOT_ENV: "development",
     RUNTIME_TOKEN_ENCRYPTION_KEY: Buffer.alloc(32, 9).toString("base64"),
-    WORKER_INTERNAL_TOKEN: "worker-secret",
     METRICS_INTERNAL_TOKEN: "metrics-secret",
   };
 

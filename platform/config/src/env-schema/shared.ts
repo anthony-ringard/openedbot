@@ -258,14 +258,14 @@ export const SHARED_ENV: readonly EnvVar[] = [
     secret: true,
   },
   // One secret per internal role (ADR 0001, 4.7, S1b; platform/config/src/internal-secrets.ts).
-  // None is required by name: a role without its variable falls back on
-  // WORKER_INTERNAL_TOKEN, and the processes refuse to start in production when
-  // a role they hold has neither (`readInternalSecrets`, also run by `env-check`).
+  // None is required by name, since no process holds them all: each process
+  // refuses to start in production without the roles it holds
+  // (`readInternalSecrets`, also run by `env-check`).
   {
     name: "EVENTS_INTERNAL_TOKEN",
     scope: "shared",
     tier: "production",
-    doc: "Bearer of the worker's event publication to the API (/internal/events); API and worker only. Falls back on WORKER_INTERNAL_TOKEN.",
+    doc: "Bearer of the worker's event publication to the API (/internal/events); API and worker only.",
     example: "",
     secret: true,
   },
@@ -273,7 +273,7 @@ export const SHARED_ENV: readonly EnvVar[] = [
     name: "RELAY_INTERNAL_TOKEN",
     scope: "shared",
     tier: "production",
-    doc: "Bearer of the connector relay routes (/internal/runtime-links: proxy, control, probe, hops); API, worker and link gateway. Falls back on WORKER_INTERNAL_TOKEN.",
+    doc: "Bearer of the connector relay routes (/internal/runtime-links: proxy, control, probe, hops); API, worker and link gateway.",
     example: "",
     secret: true,
   },
@@ -281,7 +281,7 @@ export const SHARED_ENV: readonly EnvVar[] = [
     name: "INVENTORY_INTERNAL_TOKEN",
     scope: "shared",
     tier: "production",
-    doc: "Bearer of the link gateway's inventory signal to the API (/internal/runtime-inventory); API and link gateway only. Falls back on WORKER_INTERNAL_TOKEN.",
+    doc: "Bearer of the link gateway's inventory signal to the API (/internal/runtime-inventory); API and link gateway only.",
     example: "",
     secret: true,
   },
@@ -289,23 +289,9 @@ export const SHARED_ENV: readonly EnvVar[] = [
     name: "RUN_KEY_SECRET",
     scope: "shared",
     tier: "production",
-    doc: "HMAC master secret of the MCP tools' run keys, never a bearer; API and worker only. Falls back on WORKER_INTERNAL_TOKEN.",
+    doc: "HMAC master secret of the MCP tools' run keys, never a bearer; API and worker only.",
     example: "",
     secret: true,
-  },
-  {
-    name: "WORKER_INTERNAL_TOKEN",
-    scope: "shared",
-    tier: "production",
-    doc: "Former single internal secret: the fallback of every role above and, while set, accepted by every internal verifier. Remove it once the four role secrets are deployed (cut-over in ADR 0001, 4.7).",
-    example: "",
-    secret: true,
-  },
-  {
-    name: "INTERNAL_TOKENS_EMIT",
-    scope: "shared",
-    tier: "default_only",
-    doc: "legacy or split (default split): which secret the emitters send during the cut-over; required in production while WORKER_INTERNAL_TOKEN and a role secret are both set.",
   },
   {
     name: "BILLING_ENFORCED",

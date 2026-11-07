@@ -90,7 +90,7 @@ await withDisposablePostgres("openedbot2_s2b_unknown", async ({ owner, connect }
   const config: WorkerConfig = {
     workerId: "s2a-worker",
     apiInternalUrl: "http://127.0.0.1:9",
-    internalSecrets: testInternalSecrets("worker", { WORKER_INTERNAL_TOKEN: "s2a" }),
+    internalSecrets: testInternalSecrets("worker", "s2a"),
     tokenEncryption: { current: key, previous: [] },
     hermesMtls: null,
     hermesEndpointPolicy: { environment: "test", testHttpUrl: "http://127.0.0.1:9" } as WorkerConfig["hermesEndpointPolicy"],

@@ -77,7 +77,7 @@ await withDisposablePostgres("openedbot133_text_arrays", async ({ owner: target,
   };
   const options = {
     apiInternalUrl: "http://link.invalid",
-    internalSecrets: testInternalSecrets("worker", { WORKER_INTERNAL_TOKEN: "openedbot133" }),
+    internalSecrets: testInternalSecrets("worker", "openedbot133"),
     fetchImpl: async () => Response.json(inventory),
   };
   const first = await reconcileRuntimeSessions(worker, options);

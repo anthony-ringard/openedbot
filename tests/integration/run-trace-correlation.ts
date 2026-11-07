@@ -48,21 +48,14 @@ const BOT = crypto.randomUUID();
 const THREAD = crypto.randomUUID();
 const RUNTIME = crypto.randomUUID();
 const LINK_TOKEN = `trace-link-${crypto.randomUUID()}`;
-const WORKER_TOKEN = `trace-worker-${crypto.randomUUID()}`;
 /**
- * S1b: by default each process holds only its own secrets, the production
- * layout: the gateway relay + inventory (no events, no run key), the worker
- * events + relay + run key. OPENEDBOT_TRACE_E2E_SECRETS=legacy replays the
- * former single secret, which every unmigrated host still runs on.
+ * S1b: each process holds only its own secrets, the production layout: the
+ * gateway relay + inventory (no events, no run key), the worker events + relay
+ * + run key.
  */
-const SPLIT = process.env.OPENEDBOT_TRACE_E2E_SECRETS !== "legacy";
 const RELAY_TOKEN = `trace-relay-${crypto.randomUUID()}`;
-const GATEWAY_SECRETS: Record<string, string> = SPLIT
-  ? { RELAY_INTERNAL_TOKEN: RELAY_TOKEN, INVENTORY_INTERNAL_TOKEN: `trace-inventory-${crypto.randomUUID()}` }
-  : { WORKER_INTERNAL_TOKEN: WORKER_TOKEN };
-const WORKER_SECRETS: Record<string, string> = SPLIT
-  ? { EVENTS_INTERNAL_TOKEN: `trace-events-${crypto.randomUUID()}`, RELAY_INTERNAL_TOKEN: RELAY_TOKEN, RUN_KEY_SECRET: `trace-run-key-${crypto.randomUUID()}` }
-  : { WORKER_INTERNAL_TOKEN: WORKER_TOKEN };
+const GATEWAY_SECRETS: Record<string, string> = { RELAY_INTERNAL_TOKEN: RELAY_TOKEN, INVENTORY_INTERNAL_TOKEN: `trace-inventory-${crypto.randomUUID()}` };
+const WORKER_SECRETS: Record<string, string> = { EVENTS_INTERNAL_TOKEN: `trace-events-${crypto.randomUUID()}`, RELAY_INTERNAL_TOKEN: RELAY_TOKEN, RUN_KEY_SECRET: `trace-run-key-${crypto.randomUUID()}` };
 const ENCRYPTION_KEY = Buffer.alloc(32, 9).toString("base64");
 
 function assert(condition: unknown, message: string): asserts condition {
@@ -184,19 +177,17 @@ try {
         ...process.env, OPENEDBOT_ENV: "test", NODE_ENV: "test", OPENEDBOT_LOG_DIR: "off",
         API_DATABASE_URL: url, RUNTIME_LINK_MODE: "separate", RUNTIME_LINK_HOST: "127.0.0.1",
         RUNTIME_LINK_PORT: String(linkPort), RUNTIME_LINK_INTERNAL_URL: linkUrl,
-        RUNTIME_LINK_PUBLIC_URL: linkUrl, WORKER_INTERNAL_TOKEN: undefined, ...GATEWAY_SECRETS,
+        RUNTIME_LINK_PUBLIC_URL: linkUrl, WORKER_INTERNAL_TOKEN: undefined, INTERNAL_TOKENS_EMIT: undefined, ...GATEWAY_SECRETS,
         RUNTIME_TOKEN_ENCRYPTION_KEY: ENCRYPTION_KEY, API_INTERNAL_URL: "http://127.0.0.1:9",
       },
     });
     children.push(gateway);
     await waitUntil(() => jsonLines(gateway.lines).some((line) => line.event === "runtime_link.gateway_started"), 20_000,
       "the link gateway did not start");
-    if (SPLIT) {
-      // The gateway announces its mode and holds neither the events secret nor the run-key one.
-      const started = jsonLines(gateway.lines).find((line) => line.event === "runtime_link.gateway_started") as { internalSecrets?: { roles?: Record<string, string>; legacyAccepted?: boolean } } | undefined;
-      assert(JSON.stringify(started?.internalSecrets?.roles) === JSON.stringify({ relay: "explicit", inventory: "explicit" }) && started?.internalSecrets?.legacyAccepted === false,
-        `the gateway must hold relay and inventory only: ${JSON.stringify(started?.internalSecrets)}`);
-    }
+    // The gateway announces its roles and holds neither the events secret nor the run-key one.
+    const started = jsonLines(gateway.lines).find((line) => line.event === "runtime_link.gateway_started") as { internalSecrets?: { roles?: Record<string, string> } } | undefined;
+    assert(JSON.stringify(started?.internalSecrets?.roles) === JSON.stringify({ relay: "explicit", inventory: "explicit" }),
+      `the gateway must hold relay and inventory only: ${JSON.stringify(started?.internalSecrets)}`);
 
     // 2. The real connector, linked to that gateway, relaying to the recorded fake Hermes.
     const connector = spawnJournaled("connector", [binary, "-test.run", "^TestTraceE2EHost$", "-test.v", "-test.count=1"], {
@@ -305,7 +296,7 @@ try {
     const refusals = jsonLines(gateway.lines).filter((line) => String(line.event).startsWith("internal_auth.refused"));
     assert(refusals.length === 0, `the gateway refused internal calls: ${JSON.stringify(refusals)}`);
     console.log(`worker events under the trace: ${[...new Set(tracedWorker.map((record) => record.event))].join(", ")}`);
-    console.log(`\nrun trace correlation passed: ${tracedWorker.length} traced worker lines, ${relayed.length} relayed requests, ${gatewayLines.length} gateway lines, ${connectorLines.length} connector lines, ${tracedHermes.length}/${hermesRequests.length} Hermes requests traced${LEGACY_REF ? `; ${LEGACY_REF} drops the header and the run still completes` : ""}; internal secrets ${SPLIT ? "split per process" : "single (legacy)"}.`);
+    console.log(`\nrun trace correlation passed: ${tracedWorker.length} traced worker lines, ${relayed.length} relayed requests, ${gatewayLines.length} gateway lines, ${connectorLines.length} connector lines, ${tracedHermes.length}/${hermesRequests.length} Hermes requests traced${LEGACY_REF ? `; ${LEGACY_REF} drops the header and the run still completes` : ""}; internal secrets split per process.`);
   });
 } finally {
   await Promise.allSettled(children.map((child) => child.stop()));

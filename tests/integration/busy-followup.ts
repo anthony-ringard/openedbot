@@ -396,7 +396,7 @@ async function main(): Promise<void> {
         workerId,
         apiInternalUrl: "http://127.0.0.1",
         runtimeLinkInternalUrl: relayOrigin,
-        internalSecrets: testInternalSecrets("worker", { WORKER_INTERNAL_TOKEN: INTERNAL_WORKER_TOKEN }),
+        internalSecrets: testInternalSecrets("worker", INTERNAL_WORKER_TOKEN),
         tokenEncryption: {} as WorkerConfig["tokenEncryption"],
         hermesMtls: null,
         hermesEndpointPolicy: {
