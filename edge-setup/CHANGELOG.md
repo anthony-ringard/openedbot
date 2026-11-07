@@ -14,6 +14,11 @@ deux releases différentes.
 
 ## Non publié
 
+### Changé
+
+- La mise à jour automatique est désormais activée par `up` sous Linux : toutes les 6 h, la machine installe seule une version plus récente d'edge-setup, jamais pendant que vos bots travaillent, vérifie que le lien revient et remet l'ancienne version sinon. Pour la refuser, `up --no-auto-upgrade` ou `auto-upgrade disable --yes` ; ce refus est retenu, et les `up` suivants laissent la machine telle quelle jusqu'à `auto-upgrade enable --yes`. Une machine qui l'avait déjà désactivée reste désactivée.
+- La machine dit à openedbot si sa mise à jour automatique est active, et le redit quand cela change sans couper le lien : la console affiche alors, à côté d'une mise à jour disponible, si la machine l'installera seule ou la commande qui l'active.
+
 ## v1.5.1 - 2026-11-06
 
 ### Ajouté

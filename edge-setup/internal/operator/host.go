@@ -106,6 +106,11 @@ func Host(runner exec.Runner, token string, logf func(string, ...any)) *Server {
 	server.ApprovalPolicyRead = approvalPolicy.state
 	server.ApprovalPolicyWrite = approvalPolicy.write
 	server.GatewayRestarted = approvalPolicy.gatewayRestarted
+	server.AutoUpgradeEnabled = func() bool {
+		// Stat, not Lstat: a link left to a removed timer is not enabled.
+		_, err := os.Stat(layout.AutoUpgradeTimerWants)
+		return err == nil
+	}
 	if err := ProbeInstalled(); err != nil {
 		if logf != nil {
 			logf("the toolset and MCP verbs are unavailable: %v", err)

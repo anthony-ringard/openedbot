@@ -14,6 +14,7 @@ import {
   RELAY_MAX_REQUEST_BODY,
   RELAY_MAX_RESPONSE_BODY,
   type RelayTextFrame,
+  withLinkFeatures,
 } from "@openedbot/contracts-connector";
 import { hashCredential } from "@openedbot/platform-db/credential";
 import {
@@ -349,10 +350,9 @@ export class LinkConnection {
         if (this.identity && this.admitted && !this.closed) this.inventorySignal.receive(this.identity);
         return;
       case "capabilities":
-        if (!this.closed) {
-          this.features = [...(frame.features ?? [])];
-          if (this.identity) this.onCapabilities(this, this.features);
-        }
+        if (this.closed) return;
+        this.features = withLinkFeatures(this.features, frame.features ?? []);
+        if (this.identity) this.onCapabilities(this, this.features);
         return;
       case "ping":
         this.sendFrame({ t: "pong" });

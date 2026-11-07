@@ -42,7 +42,8 @@ func fullOperator(multiplex, policyObserved bool) *Server {
 		ApprovalPolicyWrite: func(_ context.Context, _ string, request approvalPolicyRequest) (approvalPolicyState, error) {
 			return approvalPolicyState{Mode: request.Mode, PluginEnabled: true}, nil
 		},
-		SkillsHubReady: true,
+		SkillsHubReady:     true,
+		AutoUpgradeEnabled: func() bool { return true },
 	}
 }
 
@@ -64,9 +65,11 @@ func fullOperator(multiplex, policyObserved bool) *Server {
 // interrupts the running turns, which is only pessimistic. The tenth is
 // skills_inventory: an API that drops it shows the gateway's /v1/skills
 // failure as is. The eleventh is profile_toolsets_batch: an API that drops it
-// writes a profile's toolsets one by one, as before. The API in this
-// repository announces a bound of 64.
-const beyondDefaultAcknowledged = 11
+// writes a profile's toolsets one by one, as before. The twelfth is
+// auto_upgrade: an API that drops it shows the command that enables the
+// timer even on a host where it already runs, which is only redundant. The
+// API in this repository announces a bound of 64.
+const beyondDefaultAcknowledged = 12
 
 // The guard behind the incident where the next operator feature would have made
 // every updated host's hello 17 names long. It reads the REAL operator, in every

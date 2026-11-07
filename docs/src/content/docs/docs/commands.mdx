@@ -41,7 +41,7 @@ never require root.
 | `up` | | Installs the minimal runtime under `hermes`, the loopback gateway and the connector. The global protections are all opt-in, through positive options. See [`up` options](#up-options). |
 | `update` | | On its own: code 69 (not implemented). `update --self [--yes]` is the alias of `upgrade` (release only). |
 | `upgrade --yes [--release-url URL]` | | Downloads the new release over HTTPS, verifies the Sigstore signature of its `SHA256SUMS` then, once, its SHA-256 against that manifest (an unsigned release is refused), replaces the installed binary and restarts its units; also rewrites `hermes-gateway.service` when it differs from the one the binary renders, and restarts the gateway only if the host is idle. `--from FILE --tag HEX` (HMAC-SHA256 under the key set by `deploy-key set`) remains an internal path for `make deploy` over SSH. |
-| `auto-upgrade enable\|disable --yes`, `auto-upgrade status` | | Sets or removes the automatic upgrade timer (every 6 h): only a newer `vX.Y.Z` release that is signed and matches its `SHA256SUMS` is installed, the link is proven on the new binary, and the old one is put back otherwise. Disabled by default. |
+| `auto-upgrade enable\|disable --yes`, `auto-upgrade status` | | Sets or removes the automatic upgrade timer (every 6 h): only a newer `vX.Y.Z` release that is signed and matches its `SHA256SUMS` is installed, the link is proven on the new binary, and the old one is put back otherwise. On by default after `up` on Linux; `disable` is remembered. |
 | `verify-access` | | From a **new** SSH session: proves the new access and disarms an SSH/UFW/fail2ban/quarantine rollback. |
 | `version` | yes | Prints the binary version (`--version` too). No root. |
 
@@ -62,7 +62,8 @@ never require root.
 | `--admin-key F` | File holding the single `ssh-ed25519` public key of the admin account. Required by `--ssh-hardening`. |
 | `--console-confirmed` | Confirms that an out-of-band console exists; required by any new option that affects access. |
 | `--detach` | Returns after arming the rollback instead of waiting for `verify-access`. |
-| `--auto-upgrade` | Also enables the automatic upgrade timer, like `auto-upgrade enable --yes`. |
+| `--auto-upgrade` | Enables the automatic upgrade timer even after a refusal (Linux already enables it by default). |
+| `--no-auto-upgrade` | Leaves the timer off and remembers the refusal for later `up` runs. |
 
 The protections (`--sandbox`, `--persistent-journal`,
 `--unattended-upgrades`, `--sudo-logging`, `--password-policy`,

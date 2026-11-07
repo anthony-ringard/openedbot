@@ -153,7 +153,7 @@ edge-setup audit --strict
 |---|---|---|
 | `detect` | yes | Host facts and connector readiness. |
 | `plan` | yes | Prints exactly what `up` would do. |
-| `up` | | Installs the runtime, loopback gateway and connector; host policies are opt-in flags. `--auto-upgrade` also enables the upgrade timer. |
+| `up` | | Installs the runtime, loopback gateway and connector; host policies are opt-in flags. On Linux it also enables the upgrade timer, unless `--no-auto-upgrade` (remembered). |
 | `verify-access` | | From a fresh SSH session: proves admin access and commits a guarded policy. |
 | `link` | | Pairs the runtime with openedbot (`--openedbot`, default `https://link.openedbot.app`; `--name`, `--ticket-file`, `--insecure-openedbot` for a loopback development origin only). |
 | `unlink` | | Stops and removes one local link, keeping its device key and Hermes data. |
@@ -161,7 +161,7 @@ edge-setup audit --strict
 | `mcp`, `toolsets` | | List, add/enable or remove/disable MCP servers and toolsets on this host. |
 | `doctor`, `audit [--strict]`, `status`, `export` | yes | End-to-end checks, security inventory, state, non-secret coordinates. |
 | `upgrade --yes` (alias `update --self`) | | Downloads a release, verifies the Sigstore signature of its `SHA256SUMS` then the binary's SHA-256, replaces the binary, restarts the units. |
-| `auto-upgrade enable\|disable\|status` | | Timer (every 6 h) that installs a newer `vX.Y.Z` release only when idle; off by default. |
+| `auto-upgrade enable\|disable\|status` | | Timer (every 6 h) that installs a newer `vX.Y.Z` release only when idle; on by default after `up` on Linux, `disable` is remembered. |
 | `self-verify` | yes | Verifies the signature of the release `SHA256SUMS`, then checks the running binary against it. |
 | `reset --yes`, `uninstall --yes` | | Remove everything this tool installed (see [`docs/RESET.md`](docs/RESET.md)). |
 | `version` | yes | Prints the version. |

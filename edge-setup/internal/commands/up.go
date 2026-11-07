@@ -55,9 +55,10 @@ type upOptions struct {
 	fail2ban            bool
 	sshHardening        bool
 	quarantineCloudUser bool
-	// autoUpgrade enables the upgrade timer once `up` succeeds. It is not a
-	// host policy: it changes no access and is not recorded in the state.
-	autoUpgrade bool
+	// autoUpgrade decides the upgrade timer once `up` succeeds (on by
+	// default, see autoupgrade_default.go). It is not a host policy: it
+	// changes no access and is not recorded in the state.
+	autoUpgrade autoUpgradeChoice
 	// dryRun prints the plan (`plan`) instead of applying it.
 	dryRun bool
 }
@@ -115,7 +116,8 @@ func bindUpFlags(fs *flag.FlagSet) *upOptions {
 	fs.Var(&o.allowedInbound, "allow-inbound", "inbound UFW rule PORT/tcp or PORT/udp (repeatable; requires --firewall)")
 	fs.BoolVar(&o.fail2ban, "fail2ban", false, "install and configure the fail2ban sshd jail")
 	fs.BoolVar(&o.sshHardening, "ssh-hardening", false, "create hermes-admin and harden sshd under rollback")
-	fs.BoolVar(&o.autoUpgrade, "auto-upgrade", false, "also enable the timer that installs newer vX.Y.Z releases (same as `auto-upgrade enable --yes`)")
+	fs.Var(autoUpgradeFlag{choice: &o.autoUpgrade, on: true}, "auto-upgrade", "enable the timer that installs newer vX.Y.Z releases even if this host declined it before (Linux enables it by default)")
+	fs.Var(autoUpgradeFlag{choice: &o.autoUpgrade, on: false}, "no-auto-upgrade", "leave the upgrade timer off and remember the refusal for the next `up`")
 	fs.BoolVar(&o.quarantineCloudUser, "quarantine-cloud-user", false, "quarantine the Debian cloud-init account (requires --ssh-hardening)")
 	return o
 }
@@ -210,11 +212,7 @@ func runUp(env cli.Env, args []string) int {
 	if err := up(ctx, env, o, effective, selectedChanges, newAccessChange, newPolicyChange, log); err != nil {
 		return fail(env, cli.ExitFailure, "%v", err)
 	}
-	if o.autoUpgrade {
-		return enableAutoUpgrade(ctx, env)
-	}
-	printAutoUpgradeHint(env)
-	return cli.ExitOK
+	return upAutoUpgrade(ctx, env, o.autoUpgrade)
 }
 
 func up(ctx context.Context, env cli.Env, o *upOptions, features, selectedChanges state.Features, newAccessChange, newPolicyChange bool, log func(string, ...any)) error {

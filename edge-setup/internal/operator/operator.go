@@ -126,6 +126,10 @@ type Server struct {
 	// `_mcp_config_reconciler`, every 60 s), and running sessions pick new
 	// tools up between turns. An MCP write then needs no gateway restart.
 	MCPLiveReload bool
+	// AutoUpgradeEnabled reports whether the upgrade timer of this host is
+	// enabled; openedbot shows it next to a pending connector release. nil on
+	// a host without the timer (macOS, tests).
+	AutoUpgradeEnabled func() bool
 	// GracefulRestart: RestartGateway drains the running turns before the
 	// gateway relaunches (gracefulGatewayRestart), instead of cutting them.
 	GracefulRestart bool
@@ -442,8 +446,17 @@ func (s *Server) features() []string {
 	if s.Probe != nil && multiplex && s.Inventory != nil {
 		features = append(features, profileToolsetsBatchFeature)
 	}
+	// Not a verb but a state: the host installs newer releases on its own.
+	// Without it openedbot shows the command that enables the timer.
+	if s.AutoUpgradeEnabled != nil && s.AutoUpgradeEnabled() {
+		features = append(features, AutoUpgradeFeature)
+	}
 	return features
 }
+
+// AutoUpgradeFeature announces that the upgrade timer is enabled. It is read
+// on every /capabilities request, so the link re-announces a change.
+const AutoUpgradeFeature = "auto_upgrade"
 
 // refreshMultiplex reads the profiles document so capability advertisement is
 // fail-closed when an administrator changes the root config at the console.
