@@ -268,12 +268,12 @@ diffère de celle que le binaire rend, avec le remède
 
 ### Mise à jour automatique
 
-Active par défaut sous Linux depuis v1.5.2 : `up` la pose, sauf
+Active par défaut sous Linux depuis v1.5.3 : `up` la pose, sauf
 `--no-auto-upgrade`, et un refus (`--no-auto-upgrade` ou
 `auto-upgrade disable --yes`) est retenu dans
 `/var/lib/hermes-setup/auto-upgrade.declined` pour les `up` suivants.
 `auto-upgrade enable --yes` (ou `up --auto-upgrade`) l'efface. Un hôte qui
-l'avait désactivée avant v1.5.2 (passages enregistrés, timer absent) est
+l'avait désactivée avant v1.5.3 (passages enregistrés, timer absent) est
 traité comme un refus. `auto-upgrade enable --yes` pose
 `hermes-setup-upgrade.timer` : toutes les 6 h (délai aléatoire jusqu'à 1 h,
 rattrapé au démarrage si l'hôte était éteint), il lance `upgrade --auto --yes`.

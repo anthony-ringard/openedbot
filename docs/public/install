@@ -18,7 +18,7 @@ set -eu
 if (set -o pipefail) 2>/dev/null; then set -o pipefail; fi
 
 # The release this installer was cut with. `--version latest` is explicit.
-PINNED_VERSION="v1.5.2"
+PINNED_VERSION="v1.5.3"
 RELEASES="https://releases.openedbot.app/edge-setup"
 SIGNER_ISSUER="https://token.actions.githubusercontent.com"
 SIGNER_PREFIX="https://github.com/OpenedBot/openedbot/.github/workflows/edge-setup-release.yml@refs/tags/edge-setup/"

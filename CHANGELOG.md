@@ -11,7 +11,7 @@ connecteur hôte et le protocole tiennent le leur :
 ### Ajouté
 
 - **La carte « Mise à jour du connecteur » dit si l'hôte se met à jour seul.**
-  Quand l'hôte annonce `auto_upgrade` (edge-setup v1.5.2 et suivantes), la
+  Quand l'hôte annonce `auto_upgrade` (edge-setup v1.5.3 et suivantes), la
   carte de Réglages › Runtime indique qu'il installera la version dans les 6 h ;
   sinon elle propose, à côté de `upgrade`, la commande
   `sudo edge-setup auto-upgrade enable --yes` à copier. La fenêtre d'annonce ne
