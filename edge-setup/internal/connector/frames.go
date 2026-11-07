@@ -141,6 +141,12 @@ const (
 	// direction. openedbot falls back on the per-toolset route without it,
 	// which stays correct, only slower (a profile's capability baseline).
 	FeatureProfileToolsetsBatch = "profile_toolsets_batch"
+	// FeatureAutoUpgrade is a state, not a route: the upgrade timer of the
+	// host is enabled, so a newer edge-setup release installs itself (every
+	// 6 h, idle-aware, link proven, rollback on failure). It can appear or
+	// vanish during a link: the connector re-reads the operator and sends a
+	// capabilities frame when the list changes.
+	FeatureAutoUpgrade = "auto_upgrade"
 )
 
 // HostFeatures is every feature name the operator may announce, in the fixed
@@ -180,6 +186,7 @@ var HostFeatures = []string{
 	FeatureGatewayGracefulRestart,
 	FeatureSkillsInventory,
 	FeatureProfileToolsetsBatch,
+	FeatureAutoUpgrade,
 }
 
 // FeatureCreationAuditV2 is a LINK feature, announced in hello only: the

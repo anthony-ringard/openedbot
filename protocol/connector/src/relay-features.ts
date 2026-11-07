@@ -92,6 +92,12 @@ export const RELAY_FEATURE_SKILLS_INVENTORY = "skills_inventory";
 /** `POST /hermes-setup/profiles/{slug}/toolsets` : plusieurs toolsets d'un profil en une écriture. */
 export const RELAY_FEATURE_PROFILE_TOOLSETS_BATCH = "profile_toolsets_batch";
 /**
+ * Un état, pas une route : le timer de mise à jour automatique de l'hôte est
+ * actif, une release edge-setup plus récente s'installe seule. Il peut
+ * apparaître ou disparaître pendant un lien : l'hôte renvoie `capabilities`.
+ */
+export const RELAY_FEATURE_AUTO_UPGRADE = "auto_upgrade";
+/**
  * Feature du LIEN (jamais de l'opérateur) : l'hôte tient un audit de création
  * scellé et attend `audit.key` avant de dispatcher une création
  * (`docs/CONNECTOR.md`, « Audit de création chiffré »).
@@ -131,10 +137,21 @@ export const RELAY_HOST_FEATURES = [
   RELAY_FEATURE_GATEWAY_GRACEFUL_RESTART,
   RELAY_FEATURE_SKILLS_INVENTORY,
   RELAY_FEATURE_PROFILE_TOOLSETS_BATCH,
+  RELAY_FEATURE_AUTO_UPGRADE,
 ] as const;
 
 /** Les noms que le lien lui-même ajoute à `hello` (`LinkFeatures`, Go) ; jamais dans `capabilities`. */
 export const RELAY_LINK_FEATURES = [RELAY_FEATURE_CREATION_AUDIT_V2] as const;
+
+/**
+ * Les features d'un lien après une trame `capabilities` : elle ne porte que
+ * celles de l'opérateur, et celles du lien, annoncées dans `hello`, restent
+ * vraies pour toute la session.
+ */
+export function withLinkFeatures(current: readonly string[], operator: readonly string[]): string[] {
+  const link = current.filter((name) => (RELAY_LINK_FEATURES as readonly string[]).includes(name));
+  return [...link, ...operator.filter((name) => !link.includes(name))];
+}
 
 export type RelayHostFeature = (typeof RELAY_HOST_FEATURES)[number];
 export type RelayLinkFeature = (typeof RELAY_LINK_FEATURES)[number];

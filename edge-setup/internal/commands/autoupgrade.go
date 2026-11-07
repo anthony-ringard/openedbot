@@ -584,6 +584,9 @@ func enableAutoUpgrade(ctx context.Context, env cli.Env) int {
 	if err := sd.EnableNow(ctx, layout.AutoUpgradeUnit+".timer"); err != nil {
 		return fail(env, cli.ExitFailure, "auto-upgrade: %v", err)
 	}
+	if err := forgetAutoUpgradeRefusal(layout.AutoUpgradeDeclined); err != nil {
+		return fail(env, cli.ExitFailure, "auto-upgrade: the timer is enabled, but the earlier refusal could not be cleared: %v", err)
+	}
 	printf(env.Stdout, "auto-upgrade %s %s.timer enabled: every 6 h (random delay up to 1 h), vX.Y.Z releases newer than this one", env.Color.Green("✓"), layout.AutoUpgradeUnit)
 	rel, err := release("")
 	if err == nil {
@@ -634,7 +637,10 @@ func autoUpgradeDisable(env cli.Env, args []string) int {
 	if err := sd.DaemonReload(ctx); err != nil {
 		return fail(env, cli.ExitFailure, "auto-upgrade: %v", err)
 	}
-	printf(env.Stdout, "auto-upgrade %s disabled; `hermes-setup upgrade --yes` stays available", env.Color.Green("✓"))
+	if err := declineAutoUpgrade(layout.AutoUpgradeDeclined, time.Now()); err != nil {
+		return fail(env, cli.ExitFailure, "auto-upgrade: the timer is removed, but the refusal could not be recorded (the next `up` would enable it again): %v", err)
+	}
+	printf(env.Stdout, "auto-upgrade %s disabled, and the next `up` keeps it off; `sudo edge-setup upgrade --yes` stays available", env.Color.Green("✓"))
 	return cli.ExitOK
 }
 

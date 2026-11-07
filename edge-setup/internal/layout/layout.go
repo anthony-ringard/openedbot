@@ -123,6 +123,12 @@ const (
 	// enable`; AutoUpgradeRecord is what its last pass saw and did.
 	AutoUpgradeUnit   = "hermes-setup-upgrade"
 	AutoUpgradeRecord = ToolStateDir + "/auto-upgrade.json"
+	// AutoUpgradeDeclined remembers that the owner refused the timer, so a
+	// later `up` does not enable it again by default.
+	AutoUpgradeDeclined = ToolStateDir + "/auto-upgrade.declined"
+	// AutoUpgradeTimerWants is the link `systemctl enable` makes for the
+	// timer: present (and resolving) exactly while auto-upgrade is enabled.
+	AutoUpgradeTimerWants = "/etc/systemd/system/timers.target.wants/" + AutoUpgradeUnit + ".timer"
 	// UpgradeLock serialises a manual `upgrade` and an automatic pass.
 	UpgradeLock = ToolStateDir + "/upgrade.lock"
 	AuditDir    = "/var/lib/hermes/audit"

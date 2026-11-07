@@ -17,6 +17,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -689,29 +690,76 @@ func (c *Client) helloFeatures(ctx context.Context) []string {
 	return nil
 }
 
-func (c *Client) watchOperator(ctx context.Context, send func(websocket.MessageType, []byte) error) {
+// OperatorRefreshInterval is how often a connected link reads the operator's
+// features again. Some of them are states that change while the link stays up
+// (auto_upgrade when the timer is enabled or disabled); a list that changed is
+// sent in a capabilities frame, an unchanged one sends nothing.
+const OperatorRefreshInterval = 5 * time.Minute
+
+// sendCapabilities announces operator features on the existing link, under
+// the bound in force now, not the one hello was built with: a link.context
+// may have raised it since.
+func (c *Client) sendCapabilities(send func(websocket.MessageType, []byte) error, features []string) error {
+	bound := c.FeatureBound()
+	kept, dropped := announceFeatures(nil, features, bound)
+	c.logDroppedFeatures("capabilities", bound, dropped)
+	frame, err := EncodeText(Text{T: TCapabilities, Features: kept})
+	if err != nil {
+		return err
+	}
+	return send(websocket.MessageText, frame)
+}
+
+// watchOperator waits for an operator that hello found unavailable, announces
+// its features and returns them; nil once ctx ends first.
+func (c *Client) watchOperator(ctx context.Context, send func(websocket.MessageType, []byte) error) []string {
 	for c.wait(ctx, 500*time.Millisecond) == nil {
 		if features, ok := c.readOperatorFeatures(ctx); ok && len(features) > 0 {
 			c.reportHealth("operator", true, nil)
-			// The bound in force now, not the one hello was built with: a
-			// link.context may have raised it since.
-			bound := c.FeatureBound()
-			kept, dropped := announceFeatures(nil, features, bound)
-			c.logDroppedFeatures("capabilities", bound, dropped)
-			frame, err := EncodeText(Text{T: TCapabilities, Features: kept})
-			if err == nil {
-				err = send(websocket.MessageText, frame)
-			}
-			if err != nil {
+			if err := c.sendCapabilities(send, features); err != nil {
 				if ctx.Err() == nil {
 					c.Logf("operator capabilities update failed; retrying on the existing link")
 				}
 				continue
 			}
 			c.Logf("operator recovered: capabilities updated on the existing link")
+			return features
+		}
+	}
+	return nil
+}
+
+// followOperator keeps the capabilities of this link in step with the
+// operator for as long as the session lasts. announced is what hello carried
+// (empty when the operator did not answer). A failed read keeps the last list:
+// an operator that restarts does not withdraw features for a few seconds.
+func (c *Client) followOperator(ctx context.Context, send func(websocket.MessageType, []byte) error, announced []string) {
+	if len(announced) == 0 {
+		if announced = c.watchOperator(ctx, send); announced == nil {
 			return
 		}
 	}
+	for c.wait(ctx, OperatorRefreshInterval) == nil {
+		features, ok := c.readOperatorFeatures(ctx)
+		if !ok || len(features) == 0 || sameFeatureSet(features, announced) {
+			continue
+		}
+		if err := c.sendCapabilities(send, features); err != nil {
+			if ctx.Err() == nil {
+				c.Logf("operator capabilities update failed; retrying at the next refresh")
+			}
+			continue
+		}
+		announced = features
+		c.Logf("operator features changed: capabilities updated on the existing link")
+	}
+}
+
+func sameFeatureSet(a, b []string) bool {
+	x, y := slices.Clone(a), slices.Clone(b)
+	slices.Sort(x)
+	slices.Sort(y)
+	return slices.Equal(x, y)
 }
 
 // linkFeatures are what the link itself adds to hello, independent of the
@@ -888,8 +936,8 @@ func (c *Client) session(ctx context.Context, onConfirmed func()) error {
 		defer wcancel()
 		return conn.Write(wctx, kind, b)
 	}
-	if c.OperatorSocket != "" && len(features) == 0 {
-		go c.watchOperator(ctx, send)
+	if c.OperatorSocket != "" {
+		go c.followOperator(ctx, send, features)
 	}
 	var stopAnchors func()
 	defer func() {

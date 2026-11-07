@@ -114,7 +114,7 @@ func TestValidateMacUpOptionsRefusesLinuxOnlyProvisioningFlags(t *testing.T) {
 		{name: "console confirmation", set: func(o *upOptions) { o.console = true }},
 		{name: "detach", set: func(o *upOptions) { o.detach = true }},
 		{name: "inbound port", set: func(o *upOptions) { o.allowedInbound = inboundRules{"8443/tcp"} }},
-		{name: "auto-upgrade", set: func(o *upOptions) { o.autoUpgrade = true }},
+		{name: "auto-upgrade", set: func(o *upOptions) { o.autoUpgrade = autoUpgradeOn }},
 	}
 	for _, tt := range cases {
 		t.Run(tt.name, func(t *testing.T) {

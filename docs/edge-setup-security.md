@@ -206,8 +206,9 @@ Network destinations of the binary:
 - **Update:** `upgrade` verifies the signed release, keeps the current
   binary, installs the new one, and proves it (operator active, gateway
   `/health`, each link admitted again by openedbot). If a proof fails, the
-  previous binary is put back and proved. Automatic updates are off by
-  default (`auto-upgrade enable --yes`).
+  previous binary is put back and proved. On Linux, `up` turns automatic
+  updates on unless `--no-auto-upgrade`; a refusal is remembered
+  (`auto-upgrade disable --yes`, `auto-upgrade enable --yes`).
 - **Uninstall:** `uninstall` stops each connector, asks openedbot to revoke
   each runtime over a session proved by the device key, then removes the
   units, the binary and the configuration, and keeps or purges the data as
