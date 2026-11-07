@@ -8,6 +8,18 @@ connecteur hôte et le protocole tiennent le leur :
 
 ## Non publié
 
+### Ajouté
+
+- **Test bloquant de mise à jour de l'app de bureau macOS.** Une release de
+  bureau n'est plus publiée sur GitHub (« Latest ») sans qu'une app installée
+  depuis le dmg de la version précédente se soit mise à jour seule vers elle,
+  sur un runner macOS : vrai manifeste bêta, vraie clé de mise à jour, bundle
+  remplacé puis vérifié (signature, Gatekeeper, ticket agrafé, équipe), nouveau
+  processus vivant. Le même passage vérifie qu'une mise à jour signée par une
+  autre clé est refusée et laisse le bundle intact
+  (`desktop-update-canary.yml`, `apps/desktop-tauri/scripts/update-canary-mac.ts`).
+  La promotion du canal stable se fait après ce test, jamais avant.
+
 ### Sécurité
 
 - **Un secret interne par usage au lieu d'un seul.** L'API, le worker et la
