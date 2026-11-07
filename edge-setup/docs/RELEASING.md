@@ -156,6 +156,23 @@ root of trust: hosts would refuse every release it signs.
   refused. The first signed release is v0.0.3; until it is published, the
   bootstrap and `upgrade` of a signed binary install nothing.
 
+### When Rekor is down
+
+`make sign` signs each file through the public signing configuration
+(Rekor v1, `rekor.sigstore.dev`). When that fails for a file, it signs that
+file again with `scripts/sigstore-signing-config-rekor-v2.json`: the Rekor v2
+log `log2025-1.rekor.sigstore.dev` plus an RFC 3161 timestamp from
+`timestamp.sigstore.dev`. Both are in the trusted root hosts already read from
+TUF, and both verifiers accept the result with the same thresholds (a verified
+log entry, an observer timestamp) and the same exact identity: sigstore-go
+v1.3.0 (`upgrade`, `upgrade --auto`, `self-verify`, so v1.5.1 hosts too) and
+cosign v3.1.4 (bootstrap, `make verify-signatures`). If both logs refuse,
+`make sign` fails and nothing is published.
+
+This was added on 2026-11-07, when Rekor v1 answered 500 ("inactive shard")
+and the tag `edge-setup/v1.5.2` could not be signed. A tag is never moved: its
+number is skipped and the release ships under the next one (v1.5.3).
+
 Operator decision, unchanged: do not reintroduce minisign, a `MINISIGN_KEY`
 secret or any offline key ceremony; it once kept releases frozen for 66
 commits. Keyless cosign has no key to guard.
